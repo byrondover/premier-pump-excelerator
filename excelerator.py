@@ -1,6 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
+import copy
 from collections import OrderedDict
+from datetime import datetime
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font
@@ -9,8 +11,13 @@ from openpyxl.styles import Font
 class Excelerator(object):
 
     def __init__(self, file=None):
+        self.file = file
+        self.multiplier = 5
+
         # Set style variables for later use.
         self.bold = Font(bold=True)
+        self.date_format = 'mm/dd/yy'
+        self.title_font = Font(size=18)
 
         # If provided, parse file immediately.
         if file:
@@ -30,19 +37,45 @@ class Excelerator(object):
         for row in sorted_data:
             sheet.append(list(row.values()))
 
+    def append_title(self, sheet, title=None):
+        if not title:
+            title_components = [
+                '.'.join(self.file.split('.')[:-1]).upper(),
+                '–',
+                sheet.title,
+                '({n}x)'.format(n=self.multiplier)
+            ]
+            title = ' '.join(title_components)
+
+        sheet.append([title])
+
+        # Style sheet title.
+        title_row = sheet.max_row
+        sheet.merge_cells(start_row=title_row, start_column=1,
+                          end_row=title_row, end_column=4)
+        title_cell = sheet.cell(column=1, row=title_row)
+        title_cell.font = self.title_font
+
+        # Pad title with blank rows.
+        for i in range(2):
+            sheet.append([str()])
+
     def apply_styles(self):
         for i in range(1, len(self.workbook.worksheets)):
             dims = {}
             ws = self.workbook.worksheets[i]
 
-            for cell in ws.rows[0]:
+            for cell in ws.rows[3]:
                 cell.font = self.bold
 
-            for j, row in enumerate(ws.rows):
+            #for j, row in enumerate(ws.rows):
+            for j in range(3, len(ws.rows)):
                 padding = 2 if j == 0 else 1
 
-                for cell in row:
+                for cell in ws.rows[j]:
                     if cell.value:
+                        if isinstance(cell.value, datetime):
+                            cell.number_format = self.date_format
                         dims[cell.column] = max((dims.get(cell.column, 0),
                             len(str(cell.value)) + padding, 4))
 
@@ -138,6 +171,8 @@ class Excelerator(object):
         weld_picklist_sheet = self.create_sheet('WELD SCF Pick List')
         weld_picklist_data = copy.deepcopy(fabricated_list)
         self.add_column('RCVD', weld_picklist_data)
+
+        self.append_title(weld_picklist_sheet)
         self.append_data(weld_picklist_data, weld_picklist_sheet)
 
         # Create WELD BOM sheet.
@@ -145,6 +180,8 @@ class Excelerator(object):
         weld_bom_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDED']) == 'WELDED'
             and str(x['WELDMENT USED']) != 'SHIPPED LOOSE']
+
+        self.append_title(weld_bom_sheet)
         self.append_data(weld_bom_data, weld_bom_sheet)
 
         # Create WELD LOOSE sheet.
@@ -152,6 +189,8 @@ class Excelerator(object):
         weld_loose_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDED']) == 'WELDED'
             and str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
+
+        self.append_title(weld_loose_sheet)
         self.append_data(weld_loose_data, weld_loose_sheet)
 
         # Create WELD Packing Slip sheet.
@@ -159,6 +198,8 @@ class Excelerator(object):
         weld_packing_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
         self.add_column('PICKED', weld_packing_data)
+
+        self.append_title(weld_packing_sheet)
         self.append_data(weld_packing_data, weld_packing_sheet)
 
         # Create FINISH Pick List sheet.
@@ -166,6 +207,8 @@ class Excelerator(object):
         finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
         self.add_column('RCVD', finish_picklist_data)
+
+        self.append_title(finish_picklist_sheet)
         self.append_data(finish_picklist_data, finish_picklist_sheet)
 
         # Apply styles.
