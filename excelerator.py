@@ -8,7 +8,7 @@ from openpyxl.styles import Font
 
 class Excelerator(object):
 
-    def __init__(self, file = None):
+    def __init__(self, file=None):
         # Set style variables for later use.
         self.bold = Font(bold=True)
 
@@ -16,13 +16,19 @@ class Excelerator(object):
         if file:
             self.excelerate(file)
 
-    def append_data(self, sheet, data):
+    def add_column(self, name, parts_list, last=False):
+        for part in parts_list:
+            part.update({name: None})
+            part.move_to_end(name, last=last)
+
+    def append_data(self, data, sheet):
         sorted_data = sorted(data, key=lambda k: k['PART NUMBER'])
 
-        sheet.append(sorted_data[0].keys())
+        # Append dictionary keys as spreadsheet headers.
+        sheet.append(list(sorted_data[0]))
 
         for row in sorted_data:
-            sheet.append(row.values())
+            sheet.append(list(row.values()))
 
     def apply_styles(self):
         for i in range(1, len(self.workbook.worksheets)):
@@ -45,12 +51,13 @@ class Excelerator(object):
 
     def create_headers_list(self, source_cells):
         row_number = str(self.find_first_row() + 1)
-        headers_list = self.master_parts_sheet.iter_rows(
-            'A' + row_number + ':Z' + row_number).next()
+        headers_generator = self.master_parts_sheet.iter_rows(
+            'A' + row_number + ':Z' + row_number)
+        headers_list = next(headers_generator)
 
         return headers_list
 
-    def create_parts_list(self, initial_row = 0):
+    def create_parts_list(self, initial_row=0):
         first_row_number = self.find_first_row(initial_row)
         last_row_number = self.find_last_row(first_row_number)
 
@@ -82,7 +89,7 @@ class Excelerator(object):
 
         return sheet
 
-    def find_first_row(self, row = 0):
+    def find_first_row(self, row=0):
         cell_value = str()
 
         while str(cell_value) != 'QTY':
@@ -129,31 +136,37 @@ class Excelerator(object):
 
         # Create Weld SFC Pick List sheet.
         weld_picklist_sheet = self.create_sheet('WELD SCF Pick List')
-        self.append_data(weld_picklist_sheet, fabricated_list)
+        weld_picklist_data = copy.deepcopy(fabricated_list)
+        self.add_column('RCVD', weld_picklist_data)
+        self.append_data(weld_picklist_data, weld_picklist_sheet)
 
         # Create WELD BOM sheet.
         weld_bom_sheet = self.create_sheet('WELD BOM')
-        weld_bom_data = [x for x in master_parts_list if str(x['WELDED']) ==
-            'WELDED' and str(x['WELDMENT USED']) != 'SHIPPED LOOSE']
-        self.append_data(weld_bom_sheet, weld_bom_data)
+        weld_bom_data = [x for x in copy.deepcopy(master_parts_list)
+            if str(x['WELDED']) == 'WELDED'
+            and str(x['WELDMENT USED']) != 'SHIPPED LOOSE']
+        self.append_data(weld_bom_data, weld_bom_sheet)
 
         # Create WELD LOOSE sheet.
         weld_loose_sheet = self.create_sheet('WELD LOOSE')
-        weld_loose_data = [x for x in master_parts_list if str(x['WELDED']) ==
-            'WELDED' and str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        self.append_data(weld_loose_sheet, weld_loose_data)
+        weld_loose_data = [x for x in copy.deepcopy(master_parts_list)
+            if str(x['WELDED']) == 'WELDED'
+            and str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
+        self.append_data(weld_loose_data, weld_loose_sheet)
 
         # Create WELD Packing Slip sheet.
         weld_packing_sheet = self.create_sheet('WELD Packing Slip')
-        weld_packing_data = [x for x in master_parts_list
+        weld_packing_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        self.append_data(weld_packing_sheet, weld_packing_data)
+        self.add_column('PICKED', weld_packing_data)
+        self.append_data(weld_packing_data, weld_packing_sheet)
 
         # Create FINISH Pick List sheet.
         finish_picklist_sheet = self.create_sheet('FINISH Pick List')
-        finish_picklist_data = [x for x in master_parts_list
+        finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        self.append_data(finish_picklist_sheet, finish_picklist_data)
+        self.add_column('RCVD', finish_picklist_data)
+        self.append_data(finish_picklist_data, finish_picklist_sheet)
 
         # Apply styles.
         self.apply_styles()
@@ -161,6 +174,4 @@ class Excelerator(object):
         self.workbook.save("test_complete.xlsx")
 
 
-#parser = Excelerator()
-#parser.excelerate('test.xlsx')
 Excelerator('test.xlsx')
