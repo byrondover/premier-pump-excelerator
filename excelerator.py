@@ -4,12 +4,17 @@ from datetime import datetime
 
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Font, Side
+from openpyxl.writer.excel import save_virtual_workbook
 
 
 class Excelerator(object):
 
-    def __init__(self, file=None):
-        self.file = file
+    def __init__(self, workbook=str(), multiplier=5):
+        self.filename = workbook
+
+        if not isinstance(self.filename, str):
+            self.filename = self.filename.filename
+
         self.multiplier = 5
 
         # Set style variables for later use.
@@ -22,8 +27,8 @@ class Excelerator(object):
         self.title_font = Font(size=18)
 
         # If provided, parse file immediately.
-        if file:
-            self.excelerate(file)
+        if self.filename:
+            self.excelerate(self.filename)
 
     def add_column(self, name, parts_list, last=False):
         for part in parts_list:
@@ -61,7 +66,7 @@ class Excelerator(object):
     def append_title(self, sheet, title=None):
         if not title:
             title_components = [
-                '.'.join(self.file.split('.')[:-1]).upper(),
+                '.'.join(self.filename.split('.')[:-1]).upper(),
                 '–',
                 sheet.title,
                 '({n}x)'.format(n=self.multiplier)
@@ -165,7 +170,7 @@ class Excelerator(object):
         workbook = None
 
         if hasattr(self, 'workbook'):
-            workbook = self.workbook
+            workbook = save_virtual_workbook(self.workbook)
 
         return workbook
 
