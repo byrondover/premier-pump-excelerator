@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 import copy
 from collections import OrderedDict
 from datetime import datetime
 
 from openpyxl import load_workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Border, Font, Side
 
 
 class Excelerator(object):
@@ -15,7 +13,11 @@ class Excelerator(object):
         self.multiplier = 5
 
         # Set style variables for later use.
+        self.side = Side(border_style='thin')
+
         self.bold = Font(bold=True)
+        self.border = Border(left=self.side, right=self.side,
+                             top=self.side, bottom=self.side)
         self.date_format = 'mm/dd/yy'
         self.title_font = Font(size=18)
 
@@ -37,6 +39,25 @@ class Excelerator(object):
         for row in sorted_data:
             sheet.append(list(row.values()))
 
+    def append_empty_row(self, sheet, number=1):
+        for i in range(number):
+            sheet.append([str()])
+
+    def append_signature(self, prompt, sheet, date=True):
+        signature_line = ': ___________________________'
+        signature = str(prompt) + signature_line
+
+        if date:
+            signature += '           ' + 'Date' + signature_line
+
+        self.append_empty_row(sheet, 2)
+        sheet.append([None, signature])
+
+        # Style signature cells.
+        signature_row = sheet.max_row
+        sheet.merge_cells(start_row=signature_row, start_column=2,
+                          end_row=signature_row, end_column=5)
+
     def append_title(self, sheet, title=None):
         if not title:
             title_components = [
@@ -57,30 +78,30 @@ class Excelerator(object):
         title_cell.font = self.title_font
 
         # Pad title with blank rows.
-        for i in range(2):
-            sheet.append([str()])
+        self.append_empty_row(sheet, 2)
 
-    def apply_styles(self):
-        for i in range(1, len(self.workbook.worksheets)):
-            dims = {}
-            ws = self.workbook.worksheets[i]
+    def apply_styles(self, sheet, start_row=3):
+        dims = {}
 
-            for cell in ws.rows[3]:
-                cell.font = self.bold
+        for cell in sheet.rows[start_row]:
+            cell.border = self.border
+            cell.font = self.bold
 
-            #for j, row in enumerate(ws.rows):
-            for j in range(3, len(ws.rows)):
-                padding = 2 if j == 0 else 1
+        for i in range(3, len(sheet.rows)):
+            padding = 2 if i == 0 else 1
 
-                for cell in ws.rows[j]:
-                    if cell.value:
-                        if isinstance(cell.value, datetime):
-                            cell.number_format = self.date_format
-                        dims[cell.column] = max((dims.get(cell.column, 0),
-                            len(str(cell.value)) + padding, 4))
+            for cell in sheet.rows[i]:
+                cell.border = self.border
 
-            for col, value in dims.items():
-                ws.column_dimensions[col].width = value
+                if cell.value:
+                    dims[cell.column] = max((dims.get(cell.column, 0),
+                        len(str(cell.value)) + padding, 4))
+
+                    if isinstance(cell.value, datetime):
+                        cell.number_format = self.date_format
+
+        for col, value in dims.items():
+            sheet.column_dimensions[col].width = value
 
     def create_headers_list(self, source_cells):
         row_number = str(self.find_first_row() + 1)
@@ -140,6 +161,14 @@ class Excelerator(object):
 
         return row - 2
 
+    def get_workbook(self):
+        workbook = None
+
+        if hasattr(self, 'workbook'):
+            workbook = self.workbook
+
+        return workbook
+
     def excelerate(self, file):
         # Load spreadsheet into Workbook object.
         self.workbook = load_workbook(file)
@@ -174,6 +203,9 @@ class Excelerator(object):
 
         self.append_title(weld_picklist_sheet)
         self.append_data(weld_picklist_data, weld_picklist_sheet)
+        self.apply_styles(weld_picklist_sheet)
+
+        self.append_signature('Picked By', weld_picklist_sheet)
 
         # Create WELD BOM sheet.
         weld_bom_sheet = self.create_sheet('WELD BOM')
@@ -183,6 +215,7 @@ class Excelerator(object):
 
         self.append_title(weld_bom_sheet)
         self.append_data(weld_bom_data, weld_bom_sheet)
+        self.apply_styles(weld_bom_sheet)
 
         # Create WELD LOOSE sheet.
         weld_loose_sheet = self.create_sheet('WELD LOOSE')
@@ -192,6 +225,7 @@ class Excelerator(object):
 
         self.append_title(weld_loose_sheet)
         self.append_data(weld_loose_data, weld_loose_sheet)
+        self.apply_styles(weld_loose_sheet)
 
         # Create WELD Packing Slip sheet.
         weld_packing_sheet = self.create_sheet('WELD Packing Slip')
@@ -201,6 +235,9 @@ class Excelerator(object):
 
         self.append_title(weld_packing_sheet)
         self.append_data(weld_packing_data, weld_packing_sheet)
+        self.apply_styles(weld_packing_sheet)
+
+        self.append_signature('Picked By', weld_packing_sheet)
 
         # Create FINISH Pick List sheet.
         finish_picklist_sheet = self.create_sheet('FINISH Pick List')
@@ -210,11 +247,9 @@ class Excelerator(object):
 
         self.append_title(finish_picklist_sheet)
         self.append_data(finish_picklist_data, finish_picklist_sheet)
+        self.apply_styles(finish_picklist_sheet)
 
-        # Apply styles.
-        self.apply_styles()
+        self.append_signature('Picked By', finish_picklist_sheet)
+        self.append_signature('Shipped By', finish_picklist_sheet)
 
-        self.workbook.save("test_complete.xlsx")
-
-
-Excelerator('test.xlsx')
+        return self.workbook
