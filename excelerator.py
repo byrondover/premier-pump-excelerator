@@ -133,10 +133,15 @@ class Excelerator(object):
         headers = [i.value for i in self.headers if i.value != None]
 
         def item(i, j):
+            value = section[i][j].value
+
+            if self.headers[j].value == 'QTY':
+                value *= self.multiplier
+
             if j == len(headers):
                 attr = ('PART GROUP', part_group)
             else:
-                attr = (self.headers[j].value, section[i][j].value)
+                attr = (self.headers[j].value, value)
 
             return attr
 

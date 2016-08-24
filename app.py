@@ -19,10 +19,11 @@ def favicon():
 
 @app.route('/file-upload', methods=['POST'])
 def get_tasks():
-    original_file = request.files['file']
+    multiplier = request.form.get('multiplier', 1)
+    original_file = request.files.get('file')
     original_filename = original_file.filename
 
-    excelerator = Excelerator(original_file)
+    excelerator = Excelerator(original_file, multiplier)
     workbook = excelerator.get_workbook_stream()
 
     filename_components = [
