@@ -1,32 +1,93 @@
 <!DOCTYPE html>
 <head>
-  <meta charset="utf-8">
-
   <title>Premier Pump Excelerator</title>
 
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/4.3.0/min/dropzone.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.css">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body>
-  <main>
-    <section>
-      <form action="/file-upload" class="dropzone" id="dropzone"></form>
+  <main class="box">
+    <section class="title">
+      <h1>Premier Pump Excelerator</h1>
+    </section>
+    <section class="row content">
+      <form action="/file-upload" onsubmit="return false;" class="dropzone" id="dropzone">
+        <fieldset>
+          <legend>Multiplier</legend>
+          <label id="multiplier-container">
+            <div id="multiplier-slider" class="noUi-extended"></div>
+            <input id="multiplier" name="multiplier" type="number" min="1" max="100" value="1" />
+          </label>
+        </fieldset>
+      </form>
     </section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/4.3.0/min/dropzone.min.js"></script>
-  <script src="https://cdn.rawgit.com/rndme/download/master/download.min.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/4.3.0/min/dropzone.min.js"></script> -->
+  <script src="/static/js/dropzone.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2014-11-29/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wnumb/1.0.4/wNumb.min.js"></script>
 
   <script>
     Dropzone.options.dropzone = {
       init: function() {
-        this.on("success", function(file) {
+        this.on("success", function(file, response) {
           console.log(file);
-          download(file.xhr.response, file.name, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+          let filename_components = [
+            file.name.split('.').slice(0, -1).join('.'),
+            '-Excelerated.',
+            file.name.split('.').pop(),
+          ];
+          let excelerated_filename = filename_components.join('');
+
+          let blob = new Blob(
+            [response],
+            {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+          );
+          saveAs(blob, excelerated_filename);
         });
       },
-      dictDefaultMessage: "Drop files here or click to upload."
+      acceptedFiles: '.xlsx',
+      addRemoveLinks: true,
+      dictCancelUpload: 'Cancel',
+      dictDefaultMessage: 'Drop files or click here to upload.',
+      dictRemoveFile: 'Remove'
     };
+
+    var rangeSlider = document.getElementById('multiplier-slider');
+
+    noUiSlider.create(rangeSlider, {
+    	start: [ 1 ],
+      connect: 'lower',
+      step: 1,
+    	range: {
+    		'min': [   1 ],
+    		'30%': [   5 ],
+    		'70%': [  10 ],
+    		'max': [ 100 ]
+    	},
+      format: wNumb({
+    		decimals: 0
+    	})
+    });
+
+    var inputNumber = document.getElementById('multiplier');
+
+    // When the slider value changes, update the input.
+    rangeSlider.noUiSlider.on('update', function( values, handle ) {
+    	var value = values[handle];
+      inputNumber.value = value;
+    });
+
+    // When the input changes, set the slider value.
+    inputNumber.addEventListener('input', function() {
+    	rangeSlider.noUiSlider.set(this.value);
+    });
   </script>
 </body>

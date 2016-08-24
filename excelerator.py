@@ -1,6 +1,7 @@
 import copy
 from collections import OrderedDict
 from datetime import datetime
+from io import BytesIO
 
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Font, Side
@@ -15,7 +16,7 @@ class Excelerator(object):
         if not isinstance(self.filename, str):
             self.filename = self.filename.filename
 
-        self.multiplier = 5
+        self.multiplier = multiplier
 
         # Set style variables for later use.
         self.side = Side(border_style='thin')
@@ -28,7 +29,7 @@ class Excelerator(object):
 
         # If provided, parse file immediately.
         if self.filename:
-            self.excelerate(self.filename)
+            self.excelerate(workbook)
 
     def add_column(self, name, parts_list, last=False):
         for part in parts_list:
@@ -160,7 +161,7 @@ class Excelerator(object):
     def find_last_row(self, row):
         cell_value = str()
 
-        while cell_value != None:
+        while cell_value != None and row < self.master_parts_sheet.max_row:
             cell_value = self.master_parts_sheet.rows[row][0].value
             row += 1
 
@@ -170,7 +171,16 @@ class Excelerator(object):
         workbook = None
 
         if hasattr(self, 'workbook'):
-            workbook = save_virtual_workbook(self.workbook)
+            workbook = self.workbook
+
+        return workbook
+
+    def get_workbook_stream(self):
+        workbook = None
+
+        if hasattr(self, 'workbook'):
+            wb_bytes = save_virtual_workbook(self.workbook)
+            workbook = BytesIO(wb_bytes)
 
         return workbook
 
@@ -245,7 +255,7 @@ class Excelerator(object):
         self.append_signature('Picked By', weld_packing_sheet)
 
         # Create FINISH Pick List sheet.
-        finish_picklist_sheet = self.create_sheet('FINISH Pick List')
+        finish_picklist_sheet = self.create_sheet('FINISH Pick ListNEW')
         finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
         self.add_column('RCVD', finish_picklist_data)
