@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+
 from flask import Flask, redirect, render_template, request, send_file, url_for
 
 from excelerator import Excelerator
@@ -19,17 +21,19 @@ def favicon():
 
 @app.route('/file-upload', methods=['POST'])
 def get_tasks():
-    multiplier = request.form.get('multiplier', 1)
+    multiplier = int(request.form.get('multiplier', 1))
+
     original_file = request.files.get('file')
     original_filename = original_file.filename
+    filename, extension = os.path.splitext(original_filename)
 
     excelerator = Excelerator(original_file, multiplier)
     workbook = excelerator.get_workbook_stream()
 
     filename_components = [
-        '.'.join(original_filename.split('.')[:-1]),
-        '-Excelerated.',
-        original_filename.split('.')[-1]
+        filename,
+        '-Excelerated',
+        '.xlsx'
     ]
     excelerated_filename = ''.join(filename_components)
 

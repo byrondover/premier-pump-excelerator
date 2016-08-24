@@ -80,6 +80,10 @@ main table th:not(.title) { display: none; } }
 
 *, *:before, *:after { box-sizing: border-box; }
 
+.dropzone .dz-preview .dz-error-message {
+  top: 158px;
+}
+
 .box {
   display: flex;
   flex-flow: column;

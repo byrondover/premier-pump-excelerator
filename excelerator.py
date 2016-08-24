@@ -1,9 +1,11 @@
 import copy
+import os
 from collections import OrderedDict
 from datetime import datetime
 from io import BytesIO
 
-from openpyxl import load_workbook
+import xlrd
+from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Border, Font, Side
 from openpyxl.writer.excel import save_virtual_workbook
 
@@ -12,11 +14,12 @@ class Excelerator(object):
 
     def __init__(self, workbook=str(), multiplier=5):
         self.filename = workbook
+        self.multiplier = multiplier
 
         if not isinstance(self.filename, str):
-            self.filename = self.filename.filename
+            self.filename = workbook.filename
 
-        self.multiplier = multiplier
+        self.filename_stripped, self.extension = os.path.splitext(self.filename)
 
         # Set style variables for later use.
         self.side = Side(border_style='thin')
@@ -67,7 +70,7 @@ class Excelerator(object):
     def append_title(self, sheet, title=None):
         if not title:
             title_components = [
-                '.'.join(self.filename.split('.')[:-1]).upper(),
+                self.filename_stripped.upper(),
                 '–',
                 sheet.title,
                 '({n}x)'.format(n=self.multiplier)
@@ -108,6 +111,34 @@ class Excelerator(object):
 
         for col, value in dims.items():
             sheet.column_dimensions[col].width = value
+
+    def convert_to_xlsx(self, file):
+        # Read xls using xlrd.
+        if isinstance(file, str):
+            book = xlrd.open_workbook(file)
+        else:
+            book = xlrd.open_workbook(file_contents=file.stream.read())
+
+        index = 0
+        nrows, ncols = 0, 0
+
+        while nrows * ncols == 0:
+            sheet = book.sheet_by_index(index)
+            nrows = sheet.nrows
+            ncols = sheet.ncols
+            index += 1
+
+        # Prepare an xlsx workbook.
+        workbook = Workbook()
+        worksheet = workbook.active
+
+        for row in range(0, nrows):
+            for col in range(0, ncols):
+                worksheet.cell(
+                    row=row + 1, column=col + 1).value = sheet.cell_value(
+                        row, col)
+
+        return workbook
 
     def create_headers_list(self, source_cells):
         row_number = str(self.find_first_row() + 1)
@@ -158,17 +189,25 @@ class Excelerator(object):
         cell_value = str()
 
         while str(cell_value) != 'QTY':
-            cell_value = self.master_parts_sheet.rows[row][0].value
             row += 1
+
+            if row == self.master_parts_sheet.max_row:
+                break
+
+            cell_value = self.master_parts_sheet.cell(row=row, column=1).value
 
         return row - 1
 
     def find_last_row(self, row):
-        cell_value = str()
+        cell_value = True
 
-        while cell_value != None and row < self.master_parts_sheet.max_row:
-            cell_value = self.master_parts_sheet.rows[row][0].value
+        while cell_value:
             row += 1
+
+            if row == self.master_parts_sheet.max_row:
+                break
+
+            cell_value = self.master_parts_sheet.cell(row=row, column=1).value
 
         return row - 2
 
@@ -191,7 +230,10 @@ class Excelerator(object):
 
     def excelerate(self, file):
         # Load spreadsheet into Workbook object.
-        self.workbook = load_workbook(file)
+        if self.extension == '.xlsx':
+            self.workbook = load_workbook(file)
+        else:
+            self.workbook = self.convert_to_xlsx(file)
 
         # First spreadsheet should contain master parts list.
         self.master_parts_sheet = self.workbook.active
@@ -260,7 +302,7 @@ class Excelerator(object):
         self.append_signature('Picked By', weld_packing_sheet)
 
         # Create FINISH Pick List sheet.
-        finish_picklist_sheet = self.create_sheet('FINISH Pick ListNEW')
+        finish_picklist_sheet = self.create_sheet('FINISH Pick List')
         finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
             if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
         self.add_column('RCVD', finish_picklist_data)
