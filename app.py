@@ -8,6 +8,7 @@ from flask import Flask, redirect, render_template, request, send_file, url_for
 from excelerator import Excelerator
 
 app = Flask(__name__)
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 
 @app.route('/')
