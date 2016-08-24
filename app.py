@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import os
 
 from flask import Flask, redirect, render_template, request, send_file, url_for
@@ -47,12 +48,12 @@ def get_tasks():
 
 @app.route('/error')
 @app.errorhandler(500)
-def server_error(e=str()):
+def server_error(error='Unknown'):
     logging.exception('An error occurred during a request.')
     return """
     An internal error occurred: <pre>{}</pre>
     See logs for full stacktrace.
-    """.format(e), 500
+    """.format(error), 500
 
 
 if __name__ == '__main__':
