@@ -87,7 +87,7 @@ main table th:not(.title) { display: none; } }
 .box {
   display: flex;
   flex-flow: column;
-  min-height: 100%;
+  /* min-height: 100%; */
 }
 
 .box .row.content {
@@ -99,16 +99,36 @@ main table th:not(.title) { display: none; } }
 }
 
 .box,
-.box .row,
-.box .row form {
-  height: 100%;
+.box .row {
+  min-height: calc(100vh - 128px);
 }
 
-form div.dz-default.dz-message {
-  position: relative;
-  top: calc(50% - 47.775px);
-  /* transform: perspective(1px) translateY(-50%); */
-  margin: 0;
+.box .row form {
+  min-height: calc(100vh - 128px);
+  overflow: scroll;
+}
+
+#dropzone {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+#dropzone fieldset {
+  flex: 0 0 100%;
+  height: 100.5px;
+}
+
+.dropzone .dz-message {
+  /* display: flex; */
+}
+
+#dropzone .dz-default.dz-message {
+  position: absolute;
+  top: calc(50% + 32px);
+  left: calc(50% - 145.625px);
+  margin-top: 28px;
 }
 
 .title {
