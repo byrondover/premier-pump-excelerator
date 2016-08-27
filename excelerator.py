@@ -40,7 +40,7 @@ class Excelerator(object):
             part.move_to_end(name, last=last)
 
     def append_data(self, data, sheet):
-        sorted_data = sorted(data, key=lambda k: k['PART NUMBER'])
+        sorted_data = sorted(data, key=lambda k: str(k.get('PART NUMBER')))
 
         # Append dictionary keys as spreadsheet headers.
         sheet.append(list(sorted_data[0]))
@@ -168,6 +168,12 @@ class Excelerator(object):
 
             if self.headers[j].value == 'QTY':
                 value *= self.multiplier
+
+            if self.headers[j].value == 'PART NUMBER':
+                if isinstance(value, float):
+                    value = '{:.0f}'.format(value)
+                else:
+                    value = str(value)
 
             if j == len(headers):
                 attr = ('PART GROUP', part_group)

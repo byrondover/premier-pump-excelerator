@@ -107,9 +107,20 @@
       inputNumber.value = value;
     });
 
-    // When the input changes, set the slider value.
+    // When any non-blank input is detected, set the slider value.
     inputNumber.addEventListener('input', function() {
-    	rangeSlider.noUiSlider.set(this.value);
+      if (this.value)
+        rangeSlider.noUiSlider.set(this.value);
+    });
+
+    // When input loses focus, set the input and slider values.
+    inputNumber.addEventListener('blur', function() {
+      rangeSlider.noUiSlider.set(this.value);
+    });
+
+    // When input changes, set the input and slider values.
+    inputNumber.addEventListener('change', function() {
+      rangeSlider.noUiSlider.set(this.value);
     });
   </script>
 </body>
