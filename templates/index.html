@@ -29,6 +29,22 @@
     </section>
     <section class="row content">
       <form action="/file-upload" onsubmit="return false;" class="dropzone" id="dropzone">
+        <div class="form-row-1">
+          <label id="order-number-label">
+            <span class="label-name">Order Number</span>
+            <input id="order-number" name="order-number" type="textbox" />
+          </label>
+          <span class="sub-row-1">
+            <label id="primary-color-label">
+              <span class="label-name">Primary Color</span>
+              <input id="primary-color" name="primary-color" type="textbox" />
+            </label>
+            <label id="secondary-color-label">
+              <span class="label-name">Seconardy Color</span>
+              <input id="secondary-color" name="secondary-color" type="textbox" />
+            </label>
+          </span>
+        </div>
         <fieldset>
           <legend>Multiplier</legend>
           <label id="multiplier-container">

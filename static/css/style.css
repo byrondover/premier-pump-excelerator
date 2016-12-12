@@ -156,8 +156,52 @@ main table th:not(.title) { display: none; } }
 
 #multiplier-container > input {
   flex: 0 0 50px;
+  font-size: 0.75rem;
 }
 
 .noUi-horizontal.noUi-extended {
   padding-left: 16px;
+}
+
+.form-row-1 {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.form-row-1 label {
+  display: inline-block;
+  margin-right: 20px;
+  /* flex: 0 0 auto; */
+}
+
+.form-row-1 input {
+  color: #55595c;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.form-row-1 input,
+.form-row-1 select {
+  height: 28px;
+  margin: 6px;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+#order-number-label {
+  /* flex-grow: 1;
+  margin-right: 20px;
+  */
+}
+
+#primary-color-label {
+  margin-right: 20px;
+}
+
+.label-name {
+  display: inline-block;
+  width: 150px;
 }
