@@ -71,9 +71,9 @@ def get_form(request):
     form = dict()
 
     form['multiplier'] = int(request.form.get('multiplier', 1))
-    form['order_number'] = request.form.get('order_number', str()).strip()
-    form['primary_color'] = request.form.get('primary_color', str()).strip()
-    form['secondary_color'] = request.form.get('secondary_color', str()).strip()
+    form['order_number'] = request.form.get('order-number', str()).strip()
+    form['primary_color'] = request.form.get('primary-color', str()).strip()
+    form['secondary_color'] = request.form.get('secondary-color', str()).strip()
     form['file'] = request.files.get('file')
 
     return form

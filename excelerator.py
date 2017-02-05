@@ -24,7 +24,9 @@ class Excelerator:
 
         self.filename_stripped, self.extension = os.path.splitext(self.filename)
 
-        if not order_number:
+        if order_number:
+            self.order_number = order_number
+        else:
             self.order_number = self.filename_stripped
 
         # Set style variables for later use.
@@ -47,7 +49,6 @@ class Excelerator:
 
     def append_data(self, data, sheet):
         sorted_data = sorted(data, key=lambda k: str(k.get('PART NUMBER')))
-        #print(sorted_data)
 
         # Append dictionary keys as spreadsheet headers.
         sheet.append(list(sorted_data[0]))
@@ -77,7 +78,7 @@ class Excelerator:
     def append_title(self, sheet, title=None):
         if not title:
             title_components = [
-                self.filename_stripped.upper(),
+                self.order_number.upper(),
                 '–',
                 sheet.title,
                 '({n}x)'.format(n=self.multiplier)
@@ -99,7 +100,6 @@ class Excelerator:
     def apply_styles(self, sheet, start_row=3):
         dims = dict()
         rows = list(sheet.rows)
-        #print(rows)
 
         for cell in rows[start_row]:
             cell.border = self.border
@@ -151,9 +151,9 @@ class Excelerator:
 
     def create_headers_list(self, source_cells):
         row_number = str(self.find_first_row() + 1)
-        headers_generator = self.master_parts_sheet.iter_rows(
-            'A' + row_number + ':Z' + row_number)
-        headers_list = next(headers_generator)
+        headers_generator = self.master_parts_sheet[
+            'A' + row_number + ':Z' + row_number]
+        headers_list = headers_generator[0]
 
         return headers_list
 
@@ -164,8 +164,7 @@ class Excelerator:
         first_row = 'A' + str(first_row_number + 1)
         last_row = 'Z' + str(last_row_number + 1)
 
-        parts_list = list(
-            self.master_parts_sheet.iter_rows(first_row + ':' + last_row))
+        parts_list = list(self.master_parts_sheet[first_row + ':' + last_row])
 
         return parts_list, last_row_number
 
@@ -176,7 +175,7 @@ class Excelerator:
             value = section[i][j].value
 
             if self.headers[j].value == 'QTY':
-                value *= self.multiplier
+                value = int(value) * self.multiplier
 
             if self.headers[j].value == 'PART NUMBER':
                 if isinstance(value, float):
@@ -251,7 +250,7 @@ class Excelerator:
             self.workbook = self.convert_to_xlsx(file)
 
         # First spreadsheet should contain master parts list.
-        self.master_parts_sheet = self.workbook.active
+        self.master_parts_sheet = self.workbook.worksheets[0]
 
         # Iterate through master parts list and identify each section.
         fabricated_parts, last_row_number = self.create_parts_list()
