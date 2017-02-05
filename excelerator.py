@@ -10,16 +10,22 @@ from openpyxl.styles import Border, Font, Side
 from openpyxl.writer.excel import save_virtual_workbook
 
 
-class Excelerator(object):
+class Excelerator:
 
-    def __init__(self, workbook=str(), multiplier=5):
+    def __init__(self, workbook=str(), multiplier=5, order_number=str(),
+            primary_color=str(), secondary_color=str()):
         self.filename = workbook
         self.multiplier = multiplier
+        self.primary_color = primary_color
+        self.secondary_color = secondary_color
 
         if not isinstance(self.filename, str):
             self.filename = workbook.filename
 
         self.filename_stripped, self.extension = os.path.splitext(self.filename)
+
+        if not order_number:
+            self.order_number = self.filename_stripped
 
         # Set style variables for later use.
         self.side = Side(border_style='thin')
@@ -30,7 +36,7 @@ class Excelerator(object):
         self.date_format = 'mm/dd/yy'
         self.title_font = Font(size=18)
 
-        # If provided, parse file immediately.
+        # Excelerate immediately if parsable file provided.
         if self.filename:
             self.excelerate(workbook)
 
@@ -41,6 +47,7 @@ class Excelerator(object):
 
     def append_data(self, data, sheet):
         sorted_data = sorted(data, key=lambda k: str(k.get('PART NUMBER')))
+        #print(sorted_data)
 
         # Append dictionary keys as spreadsheet headers.
         sheet.append(list(sorted_data[0]))
@@ -90,16 +97,18 @@ class Excelerator(object):
         self.append_empty_row(sheet, 2)
 
     def apply_styles(self, sheet, start_row=3):
-        dims = {}
+        dims = dict()
+        rows = list(sheet.rows)
+        #print(rows)
 
-        for cell in sheet.rows[start_row]:
+        for cell in rows[start_row]:
             cell.border = self.border
             cell.font = self.bold
 
-        for i in range(3, len(sheet.rows)):
+        for i in range(3, len(rows)):
             padding = 2 if i == 0 else 1
 
-            for cell in sheet.rows[i]:
+            for cell in rows[i]:
                 cell.border = self.border
 
                 if cell.value:

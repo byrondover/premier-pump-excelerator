@@ -4,8 +4,12 @@
 
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 
+  <!-- Sources for static file equivalents below.
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/4.3.0/min/dropzone.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.css">
+  -->
+  <link rel="stylesheet" href="/static/css/dropzone.min.css">
+  <link rel="stylesheet" href="/static/css/nouislider.min.css">
   <link rel="stylesheet" href="/static/css/style.css">
 
   <!-- Google Analytics -->
@@ -44,22 +48,29 @@
               <input id="secondary-color" name="secondary-color" type="textbox" />
             </label>
           </span>
+          <fieldset>
+            <legend>Multiplier</legend>
+            <label id="multiplier-container">
+              <div id="multiplier-slider" class="noUi-extended"></div>
+              <input id="multiplier" name="multiplier" type="number" min="1" max="100" value="1" />
+            </label>
+          </fieldset>
         </div>
-        <fieldset>
-          <legend>Multiplier</legend>
-          <label id="multiplier-container">
-            <div id="multiplier-slider" class="noUi-extended"></div>
-            <input id="multiplier" name="multiplier" type="number" min="1" max="100" value="1" />
-          </label>
-        </fieldset>
       </form>
     </section>
   </main>
 
   <script src="/static/js/dropzone.js"></script>
+
+  <!-- Sources for static file equivalents below.
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2014-11-29/FileSaver.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/wnumb/1.0.4/wNumb.min.js"></script>
+  -->
+
+  <script src="/static/js/FileSaver.min.js"></script>
+  <script src="/static/js/nouislider.min.js"></script>
+  <script src="/static/js/wNumb.min.js"></script>
 
   <script>
     Dropzone.options.dropzone = {

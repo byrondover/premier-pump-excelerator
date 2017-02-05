@@ -23,21 +23,24 @@ def favicon():
 
 @app.route('/file-upload', methods=['POST'])
 def get_tasks():
-    multiplier = int(request.form.get('multiplier', 1))
+    form = get_form(request)
+    filename = get_filename(form['file'])
 
-    original_file = request.files.get('file')
-    original_filename = original_file.filename
-    filename, extension = os.path.splitext(original_filename)
+    excelerator = Excelerator(
+        form['file'],
+        form['multiplier'],
+        form['order_number'],
+        form['primary_color'],
+        form['secondary_color']
+    )
 
-    excelerator = Excelerator(original_file, multiplier)
     workbook = excelerator.get_workbook_stream()
 
-    filename_components = [
+    excelerated_filename = ''.join([
         filename,
         '-Excelerated',
         '.xlsx'
-    ]
-    excelerated_filename = ''.join(filename_components)
+    ])
 
     return send_file(
         workbook,
@@ -55,6 +58,25 @@ def server_error(error='Unknown'):
     An internal error occurred: <pre>{}</pre>
     See logs for full stacktrace.
     """.format(error), 500
+
+
+def get_filename(_file):
+    original_filename = _file.filename
+    filename, extension = os.path.splitext(original_filename)
+
+    return filename
+
+
+def get_form(request):
+    form = dict()
+
+    form['multiplier'] = int(request.form.get('multiplier', 1))
+    form['order_number'] = request.form.get('order_number', str()).strip()
+    form['primary_color'] = request.form.get('primary_color', str()).strip()
+    form['secondary_color'] = request.form.get('secondary_color', str()).strip()
+    form['file'] = request.files.get('file')
+
+    return form
 
 
 if __name__ == '__main__':
