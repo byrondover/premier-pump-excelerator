@@ -75,13 +75,13 @@ class Excelerator:
         sheet.merge_cells(start_row=signature_row, start_column=2,
                           end_row=signature_row, end_column=5)
 
-    def append_title(self, sheet, title=None):
+    def append_title(self, sheet, title=None, pad=True):
         if not title:
             title_components = [
                 self.order_number.upper(),
-                '–',
                 sheet.title,
-                '({n}x)'.format(n=self.multiplier)
+                '–',
+                'QTY {n}'.format(n=self.multiplier)
             ]
             title = ' '.join(title_components)
 
@@ -95,7 +95,8 @@ class Excelerator:
         title_cell.font = self.title_font
 
         # Pad title with blank rows.
-        self.append_empty_row(sheet, 2)
+        if pad:
+            self.append_empty_row(sheet, 2)
 
     def apply_styles(self, sheet, start_row=3):
         dims = dict()
@@ -199,6 +200,125 @@ class Excelerator:
 
         return sheet
 
+    def create_sheet_bend(self, section):
+        column_map = dict()
+        columns = OrderedDict([
+            ('QTY NEEDED', 'QTY'),
+            ('QTY RCD', None),
+            ('PART NUMBER', 'PART NUMBER'),
+            ('DESCRIPTION', 'DESCRIPTION'),
+            ('MATERIAL', 'MATERIAL'),
+            ('REV', 'REV'),
+            ('LAST REV', 'LAST REV'),
+            ('WELDED', 'WELDED'),
+            ('WELDMENT USED', 'WELDMENT USED'),
+            ('PROGRAM TIME IN', None),
+            ('TIME IN', None),
+            ('TIME OUT', None),
+            ('TOTAL', None)
+        ])
+        headers = [i.value for i in self.headers if i.value != None]
+
+        # generate column header map
+        for value in columns.values():
+            if value:
+                column_map[value] = headers.index(value)
+
+        def item(i, j, columns, column_map):
+            header = [x for x in columns][j]
+            header_key = columns[header]
+            index = column_map.get(header_key)
+
+            value = section[i][index].value if index != None else None
+
+            if header_key == 'QTY':
+                value = int(value) * self.multiplier
+
+            if header_key == 'PART NUMBER':
+                if isinstance(value, float):
+                    value = '{:.0f}'.format(value)
+                else:
+                    value = str(value)
+
+            return (header, value)
+
+        parts = [OrderedDict(item(i, j, columns, column_map)
+            for j in range(len(columns)))
+            for i in range(1, len(section))]
+
+        #import pdb; pdb.set_trace()
+        parts = [x for x in parts
+                if str(x['WELDED'].strip()) == 'LOOSE']
+
+        sheet = self.create_sheet('Bend')
+
+        self.append_title(sheet)
+
+        # Append dictionary keys as spreadsheet headers
+        sorted_parts = sorted(parts, key=lambda k: str(k.get('PART NUMBER')))
+        sorted_parts = sorted(
+            sorted_parts, key=lambda k: str(k.get('MATERIAL')), reverse=True)
+        sheet.append(list(sorted_parts[0]))
+
+        for row in sorted_parts:
+            sheet.append(list(row.values()))
+
+        self.apply_styles(sheet)
+        self.append_signature('Received by', sheet)
+
+    def create_sheet_job_inventory(self, section):
+        column_map = dict()
+        columns = OrderedDict([
+            ('QTY NEEDED', 'QTY'),
+            ('QTY IN STOCK', None),
+            ('QTY RCD', None),
+            ('PART NUMBER', 'PART NUMBER'),
+            ('DESCRIPTION', 'DESCRIPTION'),
+            ('MATERIAL', 'MATERIAL'),
+            ('PROCESS', 'PROCESS')
+        ])
+        headers = [i.value for i in self.headers if i.value != None]
+
+        # generate column header map
+        for value in columns.values():
+            if value:
+                column_map[value] = headers.index(value)
+
+        def item(i, j, columns, column_map):
+            header = [x for x in columns][j]
+            header_key = columns[header]
+            index = column_map.get(header_key)
+
+            value = section[i][index].value if index != None else None
+
+            if header_key == 'QTY':
+                value = int(value) * self.multiplier
+
+            if header_key == 'PART NUMBER':
+                if isinstance(value, float):
+                    value = '{:.0f}'.format(value)
+                else:
+                    value = str(value)
+
+            return (header, value)
+
+        parts = [OrderedDict(item(i, j, columns, column_map)
+            for j in range(len(columns)))
+            for i in range(1, len(section))]
+        sheet = self.create_sheet('Job Inventory')
+
+        self.append_title(sheet)
+
+        # Append dictionary keys as spreadsheet headers
+        sorted_parts = sorted(parts, key=lambda k: str(k.get('PART NUMBER')))
+        sheet.append(list(sorted_parts[0]))
+
+        for row in sorted_parts:
+            sheet.append(list(row.values()))
+
+        self.apply_styles(sheet)
+        self.append_signature('Received by', sheet)
+
     def find_first_row(self, row=0):
         cell_value = str()
 
@@ -259,8 +379,10 @@ class Excelerator:
         purchased_parts, last_row_number = self.create_parts_list(
             last_row_number + 1)
 
+        master_parts = fabricated_parts + weldments[1:] + purchased_parts[1:]
+
         # Create master list of headers.
-        self.headers = self.create_headers_list(fabricated_parts)
+        self.headers = self.create_headers_list(master_parts)
 
         # Create lists of dictionarys for each section.
         fabricated_list = self.create_section_list(
@@ -272,60 +394,65 @@ class Excelerator:
 
         master_parts_list = fabricated_list + weldments_list + purchased_list
 
+        #print(master_parts_list)
+        #self.create_sheet_job_inventory(copy.deepcopy(fabricated_list))
+        self.create_sheet_job_inventory(fabricated_parts)
+        self.create_sheet_bend(fabricated_parts)
+
         # Create Weld SFC Pick List sheet.
-        weld_picklist_sheet = self.create_sheet('WELD SCF Pick List')
-        weld_picklist_data = copy.deepcopy(fabricated_list)
-        self.add_column('RCVD', weld_picklist_data)
+        #weld_picklist_sheet = self.create_sheet('WELD SCF Pick List')
+        #weld_picklist_data = copy.deepcopy(fabricated_list)
+        #self.add_column('RCVD', weld_picklist_data)
 
-        self.append_title(weld_picklist_sheet)
-        self.append_data(weld_picklist_data, weld_picklist_sheet)
-        self.apply_styles(weld_picklist_sheet)
+        #self.append_title(weld_picklist_sheet)
+        #self.append_data(weld_picklist_data, weld_picklist_sheet)
+        #self.apply_styles(weld_picklist_sheet)
 
-        self.append_signature('Picked By', weld_picklist_sheet)
+        #self.append_signature('Picked By', weld_picklist_sheet)
 
         # Create WELD BOM sheet.
-        weld_bom_sheet = self.create_sheet('WELD BOM')
-        weld_bom_data = [x for x in copy.deepcopy(master_parts_list)
-            if str(x['WELDED']) == 'WELDED'
-            and str(x['WELDMENT USED']) != 'SHIPPED LOOSE']
+        #weld_bom_sheet = self.create_sheet('WELD BOM')
+        #weld_bom_data = [x for x in copy.deepcopy(master_parts_list)
+        #    if str(x['WELDED']) == 'WELDED'
+        #    and str(x['WELDMENT USED']) != 'SHIPPED LOOSE']
 
-        self.append_title(weld_bom_sheet)
-        self.append_data(weld_bom_data, weld_bom_sheet)
-        self.apply_styles(weld_bom_sheet)
+        #self.append_title(weld_bom_sheet)
+        #self.append_data(weld_bom_data, weld_bom_sheet)
+        #self.apply_styles(weld_bom_sheet)
 
         # Create WELD LOOSE sheet.
-        weld_loose_sheet = self.create_sheet('WELD LOOSE')
-        weld_loose_data = [x for x in copy.deepcopy(master_parts_list)
-            if str(x['WELDED']) == 'WELDED'
-            and str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
+        #weld_loose_sheet = self.create_sheet('WELD LOOSE')
+        #weld_loose_data = [x for x in copy.deepcopy(master_parts_list)
+        #    if str(x['WELDED']) == 'WELDED'
+        #    and str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
 
-        self.append_title(weld_loose_sheet)
-        self.append_data(weld_loose_data, weld_loose_sheet)
-        self.apply_styles(weld_loose_sheet)
+        #self.append_title(weld_loose_sheet)
+        #self.append_data(weld_loose_data, weld_loose_sheet)
+        #self.apply_styles(weld_loose_sheet)
 
         # Create WELD Packing Slip sheet.
-        weld_packing_sheet = self.create_sheet('WELD Packing Slip')
-        weld_packing_data = [x for x in copy.deepcopy(master_parts_list)
-            if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        self.add_column('PICKED', weld_packing_data)
+        #weld_packing_sheet = self.create_sheet('WELD Packing Slip')
+        #weld_packing_data = [x for x in copy.deepcopy(master_parts_list)
+        #    if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
+        #self.add_column('PICKED', weld_packing_data)
 
-        self.append_title(weld_packing_sheet)
-        self.append_data(weld_packing_data, weld_packing_sheet)
-        self.apply_styles(weld_packing_sheet)
+        #self.append_title(weld_packing_sheet)
+        #self.append_data(weld_packing_data, weld_packing_sheet)
+        #self.apply_styles(weld_packing_sheet)
 
-        self.append_signature('Picked By', weld_packing_sheet)
+        #self.append_signature('Picked By', weld_packing_sheet)
 
         # Create FINISH Pick List sheet.
-        finish_picklist_sheet = self.create_sheet('FINISH Pick List')
-        finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
-            if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        self.add_column('RCVD', finish_picklist_data)
+        #finish_picklist_sheet = self.create_sheet('FINISH Pick List')
+        #finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
+        #    if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
+        #self.add_column('RCVD', finish_picklist_data)
 
-        self.append_title(finish_picklist_sheet)
-        self.append_data(finish_picklist_data, finish_picklist_sheet)
-        self.apply_styles(finish_picklist_sheet)
+        #self.append_title(finish_picklist_sheet)
+        #self.append_data(finish_picklist_data, finish_picklist_sheet)
+        #self.apply_styles(finish_picklist_sheet)
 
-        self.append_signature('Picked By', finish_picklist_sheet)
-        self.append_signature('Shipped By', finish_picklist_sheet)
+        #self.append_signature('Picked By', finish_picklist_sheet)
+        #self.append_signature('Shipped By', finish_picklist_sheet)
 
         return self.workbook
