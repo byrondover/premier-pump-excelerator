@@ -218,11 +218,31 @@ class Excelerator:
             ('TOTAL', None)
         ])
         headers = [i.value for i in self.headers if i.value != None]
+        parts = list()
 
         # generate column header map
         for value in columns.values():
             if value:
                 column_map[value] = headers.index(value)
+
+        for i in range(1, len(section)):
+            for j in range(len(headers)):
+                header = [x for x in columns][j]
+                header_key = columns[header]
+
+                if header_key
+
+                index = column_map.get(header_key)
+                value = section[i][index].value if index != None else None
+
+                if header_key == 'QTY':
+                    value = int(value) * self.multiplier
+
+                if header_key == 'PART NUMBER':
+                    if isinstance(value, float):
+                        value = '{:.0f}'.format(value)
+                    else:
+                        value = str(value)
 
         def item(i, j, columns, column_map):
             header = [x for x in columns][j]
@@ -230,6 +250,7 @@ class Excelerator:
             index = column_map.get(header_key)
 
             value = section[i][index].value if index != None else None
+            print('{}: {}'.format(header, value))
 
             if header_key == 'QTY':
                 value = int(value) * self.multiplier
@@ -242,19 +263,29 @@ class Excelerator:
 
             return (header, value)
 
+        #parts = [OrderedDict(item(i, j, columns, column_map)
+        #    for j in range(len(columns)))
+        #    for i in range(1, len(section))]
+
         parts = [OrderedDict(item(i, j, columns, column_map)
             for j in range(len(columns)))
             for i in range(1, len(section))]
 
         #import pdb; pdb.set_trace()
         parts = [x for x in parts
-                if str(x['WELDED'].strip()) == 'LOOSE']
+                 if #'FORMED' in str(x['PROCESS']) and
+                 str(x['WELDED'].strip()) == 'LOOSE']
+
+        # don't create sheet if no matching parts found
+        if not len(parts):
+            return
 
         sheet = self.create_sheet('Bend')
 
         self.append_title(sheet)
 
         # Append dictionary keys as spreadsheet headers
+        import pdb; pdb.set_trace()
         sorted_parts = sorted(parts, key=lambda k: str(k.get('PART NUMBER')))
         sorted_parts = sorted(
             sorted_parts, key=lambda k: str(k.get('MATERIAL')), reverse=True)
