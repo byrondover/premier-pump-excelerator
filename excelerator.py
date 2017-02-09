@@ -6,7 +6,7 @@ from io import BytesIO
 
 import xlrd
 from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Border, Font, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.writer.excel import save_virtual_workbook
 
 
@@ -36,7 +36,8 @@ class Excelerator:
         self.border = Border(left=self.side, right=self.side,
                              top=self.side, bottom=self.side)
         self.date_format = 'mm/dd/yy'
-        self.title_font = Font(size=18)
+        self.fill = PatternFill(patternType='solid', fgColor='D9D9D9')
+        self.title_font = Font(size=24)
 
         # Excelerate immediately if parsable file provided.
         if self.filename:
@@ -60,7 +61,7 @@ class Excelerator:
         for i in range(number):
             sheet.append([str()])
 
-    def append_signature(self, prompt, sheet, date=True):
+    def append_signature(self, prompt, sheet, columns=5, date=True):
         signature_line = ': ___________________________'
         signature = str(prompt) + signature_line
 
@@ -73,9 +74,9 @@ class Excelerator:
         # Style signature cells.
         signature_row = sheet.max_row
         sheet.merge_cells(start_row=signature_row, start_column=2,
-                          end_row=signature_row, end_column=5)
+                          end_row=signature_row, end_column=columns)
 
-    def append_title(self, sheet, title=None, pad=True):
+    def append_title(self, sheet, title=None, columns=4, pad=True):
         if not title:
             title_components = [
                 self.order_number.upper(),
@@ -90,8 +91,9 @@ class Excelerator:
         # Style sheet title.
         title_row = sheet.max_row
         sheet.merge_cells(start_row=title_row, start_column=1,
-                          end_row=title_row, end_column=4)
+                          end_row=title_row, end_column=columns)
         title_cell = sheet.cell(column=1, row=title_row)
+        title_cell.alignment = Alignment(horizontal='center')
         title_cell.font = self.title_font
 
         # Pad title with blank rows.
@@ -106,17 +108,23 @@ class Excelerator:
             cell.border = self.border
             cell.font = self.bold
 
-        for i in range(3, len(rows)):
+        for i in range(start_row, len(rows)):
             padding = 2 if i == 0 else 1
+            sheet.row_dimensions[i + 1].height = 30
 
             for cell in rows[i]:
                 cell.border = self.border
+
+                # Shade every other data row
+                if (i + start_row) % 2 == 1:
+                    cell.fill = self.fill
 
                 if cell.value:
                     dims[cell.column] = max((dims.get(cell.column, 0),
                         len(str(cell.value)) + padding, 4))
 
                     if isinstance(cell.value, datetime):
+                        dims[cell.column] = 10
                         cell.number_format = self.date_format
 
         for col, value in dims.items():
@@ -247,7 +255,7 @@ class Excelerator:
             return
 
         sheet = self.create_sheet(name)
-        self.append_title(sheet)
+        self.append_title(sheet, columns=len(columns))
 
         sorted_parts = copy.deepcopy(parts)
         if secondary_sort:
@@ -262,12 +270,11 @@ class Excelerator:
             sheet.append(list(row.values()))
 
         self.apply_styles(sheet)
-        self.append_signature('Received by', sheet)
+        self.append_signature('Received by', sheet, columns=len(columns) - 1)
 
     def create_sheet__generic_weldments(self, section, columns, sort):
         column_map = dict()
         headers = [i.value for i in self.headers if i.value != None]
-        parts = list()
         parts_by_weldment = dict()
 
         # Generate column header map
@@ -293,8 +300,7 @@ class Excelerator:
                         value = str(value)
 
                 if header == 'WELDMENT USED':
-                    print(value)
-                    if value.strip() != 'SHIPPED LOOSE':
+                    if value and value.strip() != 'SHIPPED LOOSE':
                         weldment = str(value).strip()
 
                 cell_map[header] = value
@@ -307,13 +313,17 @@ class Excelerator:
 
                 row_data[custom_header] = value
 
-            parts.append(row_data)
             if weldment:
                 parts_by_weldment.setdefault(weldment, []).append(row_data)
 
         for weldment in sorted(parts_by_weldment):
             sheet = self.create_sheet(weldment)
-            self.append_title(sheet)
+            title = '{} – {}'.format(sheet.title,
+                                     'QTY {n}'.format(n=self.multiplier))
+
+            self.append_title(sheet, 'Weldment', columns=len(columns),
+                              pad=False)
+            self.append_title(sheet, title, columns=len(columns))
 
             parts = copy.deepcopy(parts_by_weldment[weldment])
             sorted_parts = sorted(parts,
@@ -325,8 +335,9 @@ class Excelerator:
             for row in sorted_parts:
                 sheet.append(list(row.values()))
 
-            self.apply_styles(sheet)
-            self.append_signature('Received by', sheet)
+            self.apply_styles(sheet, start_row=4)
+            self.append_signature('Received by', sheet,
+                                  columns=len(columns) - 1)
 
     def create_sheet_bend(self, section):
         columns = OrderedDict([
@@ -515,70 +526,11 @@ class Excelerator:
 
         master_parts_list = fabricated_list + weldments_list + purchased_list
 
-        #print(master_parts_list)
-        #self.create_sheet_job_inventory(copy.deepcopy(fabricated_list))
-
         self.create_sheet_job_inventory(fabricated_parts)
         self.create_sheet_bend(fabricated_parts)
         self.create_sheet_weld_pick_list(fabricated_parts)
         self.create_sheet_weld_pack_slip(fabricated_parts + weldments[1:])
         self.create_sheet_finish_slip(fabricated_parts + weldments[1:])
-        self.create_sheets_weldments(fabricated_parts)
-
-        # Create Weld SFC Pick List sheet.
-        #weld_picklist_sheet = self.create_sheet('WELD SCF Pick List')
-        #weld_picklist_data = copy.deepcopy(fabricated_list)
-        #self.add_column('RCVD', weld_picklist_data)
-
-        #self.append_title(weld_picklist_sheet)
-        #self.append_data(weld_picklist_data, weld_picklist_sheet)
-        #self.apply_styles(weld_picklist_sheet)
-
-        #self.append_signature('Picked By', weld_picklist_sheet)
-
-        # Create WELD BOM sheet.
-        #weld_bom_sheet = self.create_sheet('WELD BOM')
-        #weld_bom_data = [x for x in copy.deepcopy(master_parts_list)
-        #    if str(x['WELDED']) == 'WELDED'
-        #    and str(x['WELDMENT USED']) != 'SHIPPED LOOSE']
-
-        #self.append_title(weld_bom_sheet)
-        #self.append_data(weld_bom_data, weld_bom_sheet)
-        #self.apply_styles(weld_bom_sheet)
-
-        # Create WELD LOOSE sheet.
-        #weld_loose_sheet = self.create_sheet('WELD LOOSE')
-        #weld_loose_data = [x for x in copy.deepcopy(master_parts_list)
-        #    if str(x['WELDED']) == 'WELDED'
-        #    and str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-
-        #self.append_title(weld_loose_sheet)
-        #self.append_data(weld_loose_data, weld_loose_sheet)
-        #self.apply_styles(weld_loose_sheet)
-
-        # Create WELD Packing Slip sheet.
-        #weld_packing_sheet = self.create_sheet('WELD Packing Slip')
-        #weld_packing_data = [x for x in copy.deepcopy(master_parts_list)
-        #    if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        #self.add_column('PICKED', weld_packing_data)
-
-        #self.append_title(weld_packing_sheet)
-        #self.append_data(weld_packing_data, weld_packing_sheet)
-        #self.apply_styles(weld_packing_sheet)
-
-        #self.append_signature('Picked By', weld_packing_sheet)
-
-        # Create FINISH Pick List sheet.
-        #finish_picklist_sheet = self.create_sheet('FINISH Pick List')
-        #finish_picklist_data = [x for x in copy.deepcopy(master_parts_list)
-        #    if str(x['WELDMENT USED']) == 'SHIPPED LOOSE']
-        #self.add_column('RCVD', finish_picklist_data)
-
-        #self.append_title(finish_picklist_sheet)
-        #self.append_data(finish_picklist_data, finish_picklist_sheet)
-        #self.apply_styles(finish_picklist_sheet)
-
-        #self.append_signature('Picked By', finish_picklist_sheet)
-        #self.append_signature('Shipped By', finish_picklist_sheet)
+        self.create_sheets_weldments(fabricated_parts + purchased_parts[1:])
 
         return self.workbook
