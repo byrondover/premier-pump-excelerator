@@ -56,13 +56,13 @@ def send_email(to, filename=str(), multiplier='None', order_number='None',
             'from': 'PPP-E Mailgun User <mailgun@{}>'.format(MAILGUN_DOMAIN),
             'to': to,
             'subject': '[PPP-E] File Uploaded',
-            'text': f"""File Uploaded: {filename}
+            'text': """File Uploaded: {filename}
 
             Order Number: {order_number}
             Multiplier: {multiplier}
             Primary Color: {primary_color}
             Secondary Color: {secondary_color}
-            """
+            """.format(**locals())
         }
 
         response = requests.post(url, auth=auth, data=data)
@@ -155,7 +155,7 @@ def get_tasks():
 
     if APP_ENV == 'production':
         try:
-            send_email(ADMIN_EMAIL, filename=filename,
+            send_email(ADMIN_EMAIL, filename=form['file'].filename,
                        multiplier=form['multiplier'] or 'None',
                        order_number=form['order_number'] or 'None',
                        primary_color=form['primary_color'] or 'None',
