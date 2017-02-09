@@ -305,6 +305,7 @@ class Excelerator:
             return
 
         sheet = self.create_sheet(name)
+
         self.append_title(sheet, columns=len(columns))
 
         if colors_legend:
@@ -326,6 +327,10 @@ class Excelerator:
 
         self.apply_styles(sheet, start_row=start_row)
         self.append_signature('Received by', sheet, columns=len(columns) - 1)
+
+        # Lastly, configure page setup and printable area
+        sheet.page_setup.fitToPage = True
+        sheet.page_setup.fitToHeight = False
 
     def create_sheet__generic_weldments(self, section, columns, sort):
         column_map = dict()
@@ -393,6 +398,10 @@ class Excelerator:
             self.apply_styles(sheet, start_row=4)
             self.append_signature('Received by', sheet,
                                   columns=len(columns) - 1)
+
+            # Lastly, configure page setup and printable area
+            sheet.page_setup.fitToPage = True
+            sheet.page_setup.fitToHeight = False
 
     def create_sheet_bend(self, section):
         columns = OrderedDict([

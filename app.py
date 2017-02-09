@@ -77,4 +77,6 @@ def server_error(error='Unknown'):
 
 
 if __name__ == '__main__':
-    app.run('0.0.0.0', debug=True)
+    # For local debugging only
+    # app.run('0.0.0.0', debug=True)
+    app.run()
