@@ -2,13 +2,21 @@
 
 import logging
 import os
+import uuid
 
+import requests
 from flask import Flask, redirect, render_template, request, send_file, url_for
+from flask_sslify import SSLify
 
 from excelerator import Excelerator
 
 app = Flask(__name__)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
+YEAR_IN_SECS = 31536000
+
+# Google Cloud environment variables are defined in app.yaml
+APP_ENV = os.environ.get('APP_ENV', 'development')
+GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID')
 
 
 def get_filename(_file):
@@ -30,15 +38,70 @@ def get_form(request):
     return form
 
 
+def track_event(category, action, label=None, value=0, ip_addr=None):
+    if GA_TRACKING_ID:
+        data = {
+            'v': '1',  # API Version.
+            'tid': GA_TRACKING_ID,  # Tracking ID / Property ID.
+            # Anonymous Client Identifier. Ideally, this should be a UUID that
+            # is associated with particular user, device, or browser instance.
+            'cid': str(ip_addr) if ip_addr else uuid.uuid4(),
+            't': 'event',  # Event hit type.
+            'ec': category,  # Event category.
+            'ea': action,  # Event action.
+            'el': label,  # Event label.
+            'ev': value,  # Event value, must be an integer
+        }
+
+        response = requests.post(
+            'https://www.google-analytics.com/collect', data=data)
+
+        # If the request fails, this will raise a RequestException. Depending
+        # on your application's needs, this may be a non-error and can be caught
+        # by the caller.
+        response.raise_for_status()
+
+
+class SSLifyImproved(SSLify):
+
+    def __init__(self, app=None, age=YEAR_IN_SECS, subdomains=False,
+                 permanent=False, skips=None):
+        super().__init__(app, age, subdomains, permanent, skips)
+
+    @property
+    def hsts_header(self):
+        """Returns the proper HSTS policy."""
+        hsts_policy = 'max-age={0}'.format(self.hsts_age)
+
+        if self.hsts_include_subdomains:
+            hsts_policy = '; includeSubDomains'
+
+        hsts_policy += '; preload'
+
+        return hsts_policy
+
+
+if APP_ENV == 'production':
+    sslify = SSLifyImproved(app, permanent=True, subdomains=True)
+
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    base_url = str()
+
+    if APP_ENV == 'production':
+        base_url = 'https://premier-pump-excelerator.appspot.com/'
+
+    return render_template('index.html', base_url=base_url)
 
 
-# Fails Chrome browser HTTPS security verification. ):
-#@app.route('/favicon.ico')
-#def favicon():
-#    return redirect(url_for('static', filename='img/favicon.ico'))
+@app.route('/favicon.ico')
+def favicon():
+    if APP_ENV == 'production':
+        return redirect("https://premier-pump-excelerator.appspot.com/static/img/favicon.ico")
+    else:
+        # Fails Chrome browser HTTPS security verification. ):
+        return redirect(url_for('static', filename='img/favicon.ico'))
 
 
 @app.route('/file-upload', methods=['POST'])
@@ -59,6 +122,14 @@ def get_tasks():
     # Limit base filename to 64 characters
     excelerated_filename = filename[:64] + ' PPP-E' + '.xlsx'
 
+    if APP_ENV == 'production':
+        try:
+            track_event(category='File', action='uploaded', label=filename,
+                        value=form['multiplier'], ip_addr=request.remote_addr)
+        except:
+            # Google Analyics call fails? No big deal
+            pass
+
     return send_file(
         workbook,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -78,6 +149,8 @@ def server_error(error='Unknown'):
 
 
 if __name__ == '__main__':
-    # For local debugging only
-    app.run('0.0.0.0', debug=True)
-    # app.run()
+    if APP_ENV == 'production':
+        app.run()
+    else:
+        # For local debugging only
+        app.run('0.0.0.0', debug=True)

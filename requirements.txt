@@ -1,5 +1,6 @@
 Flask
 openpyxl
+requests
 xlrd
 
 # Google Cloud

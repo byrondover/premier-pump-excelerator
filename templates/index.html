@@ -5,15 +5,15 @@
   <!-- Fails Chrome browser HTTPS security verification.
   <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
   -->
-  <link rel="shortcut icon" href="https://premier-pump-excelerator.appspot.com/static/img/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="{{ base_url }}/static/img/favicon.ico" type="image/x-icon">
 
   <!-- Sources for static file equivalents below.
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/4.3.0/min/dropzone.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/8.5.1/nouislider.min.css">
   -->
-  <link rel="stylesheet" href="/static/css/dropzone.min.css">
-  <link rel="stylesheet" href="/static/css/nouislider.min.css">
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="{{ base_url }}/static/css/dropzone.min.css">
+  <link rel="stylesheet" href="{{ base_url }}/static/css/nouislider.min.css">
+  <link rel="stylesheet" href="{{ base_url }}/static/css/style.css">
 
   <!-- Google Analytics -->
   <script>
@@ -35,7 +35,7 @@
       <h1>Premier Pump Excelerator</h1>
     </section>
     <section class="row content">
-      <form action="/file-upload" onsubmit="return false;" class="dropzone" id="dropzone">
+      <form action="{{ base_url }}/file-upload" onsubmit="return false;" class="dropzone" id="dropzone">
         <div class="form-row-1">
           <label id="order-number-label">
             <span class="label-name">Order Number</span>
@@ -63,7 +63,7 @@
     </section>
   </main>
 
-  <script src="/static/js/dropzone.js"></script>
+  <script src="{{ base_url }}/static/js/dropzone.js"></script>
 
   <!-- Sources for static file equivalents below.
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2014-11-29/FileSaver.min.js"></script>
@@ -71,9 +71,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/wnumb/1.0.4/wNumb.min.js"></script>
   -->
 
-  <script src="/static/js/FileSaver.min.js"></script>
-  <script src="/static/js/nouislider.min.js"></script>
-  <script src="/static/js/wNumb.min.js"></script>
+  <script src="{{ base_url }}/static/js/FileSaver.min.js"></script>
+  <script src="{{ base_url }}/static/js/nouislider.min.js"></script>
+  <script src="{{ base_url }}/static/js/wNumb.min.js"></script>
 
   <script>
     Dropzone.options.dropzone = {
