@@ -200,8 +200,71 @@ class Excelerator:
 
         return sheet
 
-    def create_sheet_bend(self, section):
+    def create_sheet__generic(self, name, section, columns, sort,
+                              filter_='False', secondary_sort=None):
         column_map = dict()
+        headers = [i.value for i in self.headers if i.value != None]
+        parts = list()
+
+        # Generate column header map
+        for value in columns.values():
+            if value:
+                column_map[value] = headers.index(value)
+
+        for i in range(1, len(section)):
+            cell_map = dict()
+
+            for j in range(len(headers)):
+                header = headers[j]
+                value = section[i][j].value
+
+                if header == 'QTY':
+                    value = int(value) * self.multiplier
+
+                if header == 'PART NUMBER':
+                    if isinstance(value, float):
+                        value = '{:.0f}'.format(value)
+                    else:
+                        value = str(value)
+
+                cell_map[header] = value
+
+            if not (eval(filter_)):
+                continue
+
+            row_data = OrderedDict()
+
+            for custom_header, key in columns.items():
+                index = column_map.get(key)
+                value = cell_map[key] if key != None else None
+
+                row_data[custom_header] = value
+
+            parts.append(row_data)
+
+        # Skip sheet creation if no parts match
+        if not len(parts):
+            return
+
+        sheet = self.create_sheet(name)
+        self.append_title(sheet)
+
+        sorted_parts = copy.deepcopy(parts)
+        if secondary_sort:
+            sorted_parts = sorted(
+                parts, key=lambda k: str(k.get(secondary_sort)))
+        sorted_parts = sorted(sorted_parts, key=lambda k: str(k.get(sort)))
+
+        # Append dictionary keys as spreadsheet headers
+        sheet.append(list(sorted_parts[0]))
+
+        for row in sorted_parts:
+            sheet.append(list(row.values()))
+
+        self.apply_styles(sheet)
+        self.append_signature('Received by', sheet)
+
+    def create_sheet_bend(self, section):
         columns = OrderedDict([
             ('QTY NEEDED', 'QTY'),
             ('QTY RCD', None),
@@ -217,88 +280,33 @@ class Excelerator:
             ('TIME OUT', None),
             ('TOTAL', None)
         ])
-        headers = [i.value for i in self.headers if i.value != None]
-        parts = list()
+        filter_ = """'FORMED' in str(cell_map['PROCESS']) and \
+                     str(cell_map['WELDED'].strip()) == 'LOOSE'"""
+        sort = 'MATERIAL'
+        secondary_sort = 'PART NUMBER'
 
-        # generate column header map
-        for value in columns.values():
-            if value:
-                column_map[value] = headers.index(value)
+        self.create_sheet__generic('Bend', section, columns, sort, filter_,
+                                  secondary_sort)
 
-        for i in range(1, len(section)):
-            for j in range(len(headers)):
-                header = [x for x in columns][j]
-                header_key = columns[header]
+    def create_sheet_finish_slip(self, section):
+        columns = OrderedDict([
+            ('DLVD', None),
+            ('RCVD', None),
+            ('QTY', 'QTY'),
+            ('PART NUMBER', 'PART NUMBER'),
+            ('DESCRIPTION', 'DESCRIPTION'),
+            ('MATERIAL', 'MATERIAL'),
+            ('WELDED', 'WELDED'),
+            ('COLOR', 'COLOR')
+        ])
+        filter_ = "str(cell_map['WELDMENT USED'].strip()) == 'SHIPPED LOOSE'"
+        sort = 'COLOR'
+        secondary_sort = 'PART NUMBER'
 
-                if header_key
-
-                index = column_map.get(header_key)
-                value = section[i][index].value if index != None else None
-
-                if header_key == 'QTY':
-                    value = int(value) * self.multiplier
-
-                if header_key == 'PART NUMBER':
-                    if isinstance(value, float):
-                        value = '{:.0f}'.format(value)
-                    else:
-                        value = str(value)
-
-        def item(i, j, columns, column_map):
-            header = [x for x in columns][j]
-            header_key = columns[header]
-            index = column_map.get(header_key)
-
-            value = section[i][index].value if index != None else None
-            print('{}: {}'.format(header, value))
-
-            if header_key == 'QTY':
-                value = int(value) * self.multiplier
-
-            if header_key == 'PART NUMBER':
-                if isinstance(value, float):
-                    value = '{:.0f}'.format(value)
-                else:
-                    value = str(value)
-
-            return (header, value)
-
-        #parts = [OrderedDict(item(i, j, columns, column_map)
-        #    for j in range(len(columns)))
-        #    for i in range(1, len(section))]
-
-        parts = [OrderedDict(item(i, j, columns, column_map)
-            for j in range(len(columns)))
-            for i in range(1, len(section))]
-
-        #import pdb; pdb.set_trace()
-        parts = [x for x in parts
-                 if #'FORMED' in str(x['PROCESS']) and
-                 str(x['WELDED'].strip()) == 'LOOSE']
-
-        # don't create sheet if no matching parts found
-        if not len(parts):
-            return
-
-        sheet = self.create_sheet('Bend')
-
-        self.append_title(sheet)
-
-        # Append dictionary keys as spreadsheet headers
-        import pdb; pdb.set_trace()
-        sorted_parts = sorted(parts, key=lambda k: str(k.get('PART NUMBER')))
-        sorted_parts = sorted(
-            sorted_parts, key=lambda k: str(k.get('MATERIAL')), reverse=True)
-        sheet.append(list(sorted_parts[0]))
-
-        for row in sorted_parts:
-            sheet.append(list(row.values()))
-
-        self.apply_styles(sheet)
-        self.append_signature('Received by', sheet)
+        self.create_sheet__generic('Finish Pack Slip', section, columns, sort,
+                                   filter_, secondary_sort)
 
     def create_sheet_job_inventory(self, section):
-        column_map = dict()
         columns = OrderedDict([
             ('QTY NEEDED', 'QTY'),
             ('QTY IN STOCK', None),
@@ -308,47 +316,34 @@ class Excelerator:
             ('MATERIAL', 'MATERIAL'),
             ('PROCESS', 'PROCESS')
         ])
-        headers = [i.value for i in self.headers if i.value != None]
+        sort = 'PART NUMBER'
 
-        # generate column header map
-        for value in columns.values():
-            if value:
-                column_map[value] = headers.index(value)
+        self.create_sheet__generic('Job Inventory', section, columns, sort)
 
-        def item(i, j, columns, column_map):
-            header = [x for x in columns][j]
-            header_key = columns[header]
-            index = column_map.get(header_key)
+    def create_sheet_weld_packing_slip(self, section):
+        columns = OrderedDict([
+            ('QTY NEEDED', 'QTY'),
+            ('DLVD', None),
+            ('PALLET', None),
+            ('RCVD', None),
+            ('PART NUMBER', 'PART NUMBER'),
+            ('DESCRIPTION', 'DESCRIPTION'),
+            ('MATERIAL', 'MATERIAL'),
+            ('REV', 'REV'),
+            ('LAST REV', 'LAST REV'),
+            ('WELDED', 'WELDED'),
+            ('WELDMENT USED', 'WELDMENT USED')
+        ])
+        filter_ = "str(cell_map['WELDMENT USED'].strip()) == 'SHIPPED LOOSE'"
+        sort = 'WELDMENT USED'
+        secondary_sort = 'PART NUMBER'
 
-            value = section[i][index].value if index != None else None
+        self.create_sheet__generic('Weld Packing Slip', section, columns, sort,
+                                   filter_, secondary_sort)
 
-            if header_key == 'QTY':
-                value = int(value) * self.multiplier
-
-            if header_key == 'PART NUMBER':
-                if isinstance(value, float):
-                    value = '{:.0f}'.format(value)
-                else:
-                    value = str(value)
-
-            return (header, value)
-
-        parts = [OrderedDict(item(i, j, columns, column_map)
-            for j in range(len(columns)))
-            for i in range(1, len(section))]
-        sheet = self.create_sheet('Job Inventory')
-
-        self.append_title(sheet)
-
-        # Append dictionary keys as spreadsheet headers
-        sorted_parts = sorted(parts, key=lambda k: str(k.get('PART NUMBER')))
-        sheet.append(list(sorted_parts[0]))
-
-        for row in sorted_parts:
-            sheet.append(list(row.values()))
-
-        self.apply_styles(sheet)
-        self.append_signature('Received by', sheet)
+    def create_sheets_weldments(self, section):
+        
+        return
 
     def find_first_row(self, row=0):
         cell_value = str()
@@ -427,8 +422,12 @@ class Excelerator:
 
         #print(master_parts_list)
         #self.create_sheet_job_inventory(copy.deepcopy(fabricated_list))
+
         self.create_sheet_job_inventory(fabricated_parts)
         self.create_sheet_bend(fabricated_parts)
+        self.create_sheet_weld_packing_slip(fabricated_parts)
+        self.create_sheet_finish_slip(fabricated_parts)
+        self.create_sheets_weldments(fabricated_parts)
 
         # Create Weld SFC Pick List sheet.
         #weld_picklist_sheet = self.create_sheet('WELD SCF Pick List')
