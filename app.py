@@ -35,9 +35,10 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/favicon.ico')
-def favicon():
-    return redirect(url_for('static', filename='img/favicon.ico'))
+# Fails Chrome browser HTTPS security verification. ):
+#@app.route('/favicon.ico')
+#def favicon():
+#    return redirect(url_for('static', filename='img/favicon.ico'))
 
 
 @app.route('/file-upload', methods=['POST'])
