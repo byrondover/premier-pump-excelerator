@@ -32,7 +32,12 @@
 <body>
   <main class="box">
     <section class="title">
-      <h1>Premier Pump Excelerator</h1>
+      <h1>
+        Premier Pump Excelerator
+        {% if version %}
+        <span class="version">v{{ version }}</span>
+        {% endif %}
+      </h1>
     </section>
     <section class="row content">
       <form action="{{ base_url }}/file-upload" onsubmit="return false;" class="dropzone" id="dropzone">

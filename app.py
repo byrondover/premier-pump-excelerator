@@ -3,6 +3,7 @@
 import logging
 import os
 import uuid
+from base64 import b64decode
 
 import requests
 from flask import Flask, redirect, render_template, request, send_file, url_for
@@ -12,11 +13,18 @@ from excelerator import Excelerator
 
 app = Flask(__name__)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
-YEAR_IN_SECS = 31536000
 
+# [START config]
 # Google Cloud environment variables are defined in app.yaml
 APP_ENV = os.environ.get('APP_ENV', 'development')
 GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID')
+MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN')
+MAILGUN_SERIAL = os.environ.get('MAILGUN_SERIAL')
+
+ADMIN_EMAIL='byrondover+ppp-e@gmail.com'
+VERSION = '2.0.1'
+YEAR_IN_SECS = 31536000
+# [END config]
 
 
 def get_filename(_file):
@@ -36,6 +44,23 @@ def get_form(request):
     form['file'] = request.files.get('file')
 
     return form
+
+
+def send_email(to, filename=str(), multiplier=str(), order_number=str(),
+               primary_color=str(), secondary_color=str()):
+    if MAILGUN_DOMAIN and MAILGUN_SERIAL:
+        url = 'https://api.mailgun.net/v3/{}/messages'.format(MAILGUN_DOMAIN)
+        auth = ('api',
+                b64decode(str(MAILGUN_SERIAL).encode('UTF-8')).decode('UTF-8'))
+        data = {
+            'from': 'PPP-E Mailgun User <mailgun@{}>'.format(MAILGUN_DOMAIN),
+            'to': to,
+            'subject': 'File Uploaded',
+            'text': "Here's what happened.",
+        }
+
+        response = requests.post(url, auth=auth, data=data)
+        response.raise_for_status()
 
 
 def track_event(category, action, label=None, value=0, ip_addr=None):
@@ -92,7 +117,7 @@ def index():
     if APP_ENV == 'production':
         base_url = 'https://premier-pump-excelerator.appspot.com/'
 
-    return render_template('index.html', base_url=base_url)
+    return render_template('index.html', base_url=base_url, version=VERSION)
 
 
 @app.route('/favicon.ico')
@@ -124,10 +149,15 @@ def get_tasks():
 
     if APP_ENV == 'production':
         try:
+            send_email(ADMIN_EMAIL, filename=filename,
+                       multiplier=form['multiplier'],
+                       order_number=form['order_number'],
+                       primary_color=form['primary_color'],
+                       secondary_color=form['secondary_color'])
             track_event(category='File', action='uploaded', label=filename,
                         value=form['multiplier'], ip_addr=request.remote_addr)
         except:
-            # Google Analyics call fails? No big deal
+            # Email call or Google Analyics call fails? No big deal
             pass
 
     return send_file(
