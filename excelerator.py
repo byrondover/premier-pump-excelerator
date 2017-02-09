@@ -28,9 +28,10 @@ class Excelerator:
         if order_number:
             self.order_number = order_number
         else:
-            self.order_number = self.filename_stripped
+            self.order_number = self.sanitize_name(self.filename_stripped,
+                                                   max_length=64)
 
-        # Set style variables for later use.
+        # Set style variables for later use
         self.side = Side(border_style='thin')
 
         self.bold = Font(bold=True)
@@ -40,7 +41,7 @@ class Excelerator:
         self.fill = PatternFill(patternType='solid', fgColor='D9D9D9')
         self.title_font = Font(size=24)
 
-        # Excelerate immediately if parsable file provided.
+        # Excelerate immediately when parsable file provided
         if self.filename:
             self.excelerate(workbook)
 
@@ -131,6 +132,7 @@ class Excelerator:
         title_row = sheet.max_row
         sheet.merge_cells(start_row=title_row, start_column=1,
                           end_row=title_row, end_column=columns)
+        sheet.row_dimensions[title_row].height = 30
         title_cell = sheet.cell(column=1, row=title_row)
         title_cell.alignment = Alignment(horizontal='center')
         title_cell.font = self.title_font
@@ -556,16 +558,16 @@ class Excelerator:
         # Limit base filename to 64 characters
         file_.filename = self.sanitize_name(file_.filename, max_length=64)
 
-        # Load spreadsheet into Workbook object.
+        # Load spreadsheet into Workbook object
         if self.extension == '.xlsx':
             self.workbook = load_workbook(file_)
         else:
             self.workbook = self.convert_to_xlsx(file_)
 
-        # First spreadsheet should contain master parts list.
+        # First spreadsheet should contain master parts list
         self.master_parts_sheet = self.workbook.worksheets[0]
 
-        # Iterate through master parts list and identify each section.
+        # Iterate through master parts list and identify each section
         fabricated_parts, last_row_number = self.create_parts_list()
         weldments, last_row_number = self.create_parts_list(
             last_row_number + 1)
@@ -574,10 +576,10 @@ class Excelerator:
 
         master_parts = fabricated_parts + weldments[1:] + purchased_parts[1:]
 
-        # Create master list of headers.
+        # Create master list of headers
         self.headers = self.create_headers_list(master_parts)
 
-        # Create lists of dictionarys for each section.
+        # Create lists of dictionarys for each section
         fabricated_list = self.create_section_list(
             fabricated_parts, 'FabricatedParts')
         weldments_list = self.create_section_list(

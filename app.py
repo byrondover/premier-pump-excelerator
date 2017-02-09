@@ -11,6 +11,25 @@ app = Flask(__name__)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 
+def get_filename(_file):
+    original_filename = _file.filename
+    filename, extension = os.path.splitext(original_filename)
+
+    return filename
+
+
+def get_form(request):
+    form = dict()
+
+    form['multiplier'] = int(request.form.get('multiplier', 1))
+    form['order_number'] = request.form.get('order-number', str()).strip()
+    form['primary_color'] = request.form.get('primary-color', str()).strip()
+    form['secondary_color'] = request.form.get('secondary-color', str()).strip()
+    form['file'] = request.files.get('file')
+
+    return form
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -57,24 +76,5 @@ def server_error(error='Unknown'):
     """.format(error), 500
 
 
-def get_filename(_file):
-    original_filename = _file.filename
-    filename, extension = os.path.splitext(original_filename)
-
-    return filename
-
-
-def get_form(request):
-    form = dict()
-
-    form['multiplier'] = int(request.form.get('multiplier', 1))
-    form['order_number'] = request.form.get('order-number', str()).strip()
-    form['primary_color'] = request.form.get('primary-color', str()).strip()
-    form['secondary_color'] = request.form.get('secondary-color', str()).strip()
-    form['file'] = request.files.get('file')
-
-    return form
-
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run('0.0.0.0', debug=True)
