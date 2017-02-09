@@ -419,8 +419,7 @@ class Excelerator:
             ('TIME OUT', None),
             ('TOTAL', None)
         ])
-        filter_ = """'FORMED' in str(cell_map['PROCESS']) and \
-                     str(cell_map['WELDED'].strip()) == 'LOOSE'"""
+        filter_ = "'FORMED' in str(cell_map['PROCESS'])"
         sort = 'MATERIAL'
         secondary_sort = 'PART NUMBER'
 
@@ -455,9 +454,11 @@ class Excelerator:
             ('MATERIAL', 'MATERIAL'),
             ('PROCESS', 'PROCESS')
         ])
-        sort = 'PART NUMBER'
+        sort = 'MATERIAL'
+        secondary_sort = 'PART NUMBER'
 
-        self.create_sheet__generic('Job Inventory', section, columns, sort)
+        self.create_sheet__generic('Job Inventory', section, columns, sort,
+                                   secondary_sort=secondary_sort)
 
     def create_sheet_weld_pack_slip(self, section):
         columns = OrderedDict([
@@ -491,7 +492,7 @@ class Excelerator:
             ('WELDED', 'WELDED'),
             ('WELDMENT USED', 'WELDMENT USED')
         ])
-        filter_ = "str(cell_map['WELDMENT USED'].strip()) != 'SHIPPED LOOSE'"
+        filter_ = "str(cell_map['WELDED'].strip()) == 'WELDED'"
         sort = 'WELDMENT USED'
         secondary_sort = 'PART NUMBER'
 
