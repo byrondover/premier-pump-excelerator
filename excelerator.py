@@ -252,7 +252,7 @@ class Excelerator:
         sorted_parts = copy.deepcopy(parts)
         if secondary_sort:
             sorted_parts = sorted(
-                parts, key=lambda k: str(k.get(secondary_sort)))
+                sorted_parts, key=lambda k: str(k.get(secondary_sort)))
         sorted_parts = sorted(sorted_parts, key=lambda k: str(k.get(sort)))
 
         # Append dictionary keys as spreadsheet headers
@@ -263,6 +263,70 @@ class Excelerator:
 
         self.apply_styles(sheet)
         self.append_signature('Received by', sheet)
+
+    def create_sheet__generic_weldments(self, section, columns, sort):
+        column_map = dict()
+        headers = [i.value for i in self.headers if i.value != None]
+        parts = list()
+        parts_by_weldment = dict()
+
+        # Generate column header map
+        for value in columns.values():
+            if value:
+                column_map[value] = headers.index(value)
+
+        for i in range(1, len(section)):
+            cell_map = dict()
+            weldment = None
+
+            for j in range(len(headers)):
+                header = headers[j]
+                value = section[i][j].value
+
+                if header == 'QTY':
+                    value = int(value) * self.multiplier
+
+                if header == 'PART NUMBER':
+                    if isinstance(value, float):
+                        value = '{:.0f}'.format(value)
+                    else:
+                        value = str(value)
+
+                if header == 'WELDMENT USED':
+                    print(value)
+                    if value.strip() != 'SHIPPED LOOSE':
+                        weldment = str(value).strip()
+
+                cell_map[header] = value
+
+            row_data = OrderedDict()
+
+            for custom_header, key in columns.items():
+                index = column_map.get(key)
+                value = cell_map[key] if key != None else None
+
+                row_data[custom_header] = value
+
+            parts.append(row_data)
+            if weldment:
+                parts_by_weldment.setdefault(weldment, []).append(row_data)
+
+        for weldment in sorted(parts_by_weldment):
+            sheet = self.create_sheet(weldment)
+            self.append_title(sheet)
+
+            parts = copy.deepcopy(parts_by_weldment[weldment])
+            sorted_parts = sorted(parts,
+                                  key=lambda k: str(k.get('PART_NUMBER')))
+
+            # Append dictionary keys as spreadsheet headers
+            sheet.append(list(sorted_parts[0]))
+
+            for row in sorted_parts:
+                sheet.append(list(row.values()))
+
+            self.apply_styles(sheet)
+            self.append_signature('Received by', sheet)
 
     def create_sheet_bend(self, section):
         columns = OrderedDict([
@@ -320,7 +384,25 @@ class Excelerator:
 
         self.create_sheet__generic('Job Inventory', section, columns, sort)
 
-    def create_sheet_weld_packing_slip(self, section):
+    def create_sheet_weld_pack_slip(self, section):
+        columns = OrderedDict([
+            ('DLVD', None),
+            ('RCVD', None),
+            ('QTY', 'QTY'),
+            ('PART NUMBER', 'PART NUMBER'),
+            ('DESCRIPTION', 'DESCRIPTION'),
+            ('MATERIAL', 'MATERIAL'),
+            ('WELDED', 'WELDED'),
+            ('COLOR', 'COLOR')
+        ])
+        filter_ = "str(cell_map['WELDMENT USED'].strip()) == 'SHIPPED LOOSE'"
+        sort = 'COLOR'
+        secondary_sort = 'PART NUMBER'
+
+        self.create_sheet__generic('Weld Pack Slip', section, columns, sort,
+                                   filter_, secondary_sort)
+
+    def create_sheet_weld_pick_list(self, section):
         columns = OrderedDict([
             ('QTY NEEDED', 'QTY'),
             ('DLVD', None),
@@ -334,16 +416,29 @@ class Excelerator:
             ('WELDED', 'WELDED'),
             ('WELDMENT USED', 'WELDMENT USED')
         ])
-        filter_ = "str(cell_map['WELDMENT USED'].strip()) == 'SHIPPED LOOSE'"
+        filter_ = "str(cell_map['WELDMENT USED'].strip()) != 'SHIPPED LOOSE'"
         sort = 'WELDMENT USED'
         secondary_sort = 'PART NUMBER'
 
-        self.create_sheet__generic('Weld Packing Slip', section, columns, sort,
+        self.create_sheet__generic('Weld Pick List', section, columns, sort,
                                    filter_, secondary_sort)
 
     def create_sheets_weldments(self, section):
-        
-        return
+        columns = OrderedDict([
+            ('QTY NEEDED', 'QTY'),
+            ('DLVD', None),
+            ('RCVD', None),
+            ('PART NUMBER', 'PART NUMBER'),
+            ('DESCRIPTION', 'DESCRIPTION'),
+            ('MATERIAL', 'MATERIAL'),
+            ('REV', 'REV'),
+            ('LAST REV', 'LAST REV'),
+            ('WELDED', 'WELDED'),
+            ('WELDMENT USED', 'WELDMENT USED')
+        ])
+        sort = 'PART NUMBER'
+
+        self.create_sheet__generic_weldments(section, columns, sort)
 
     def find_first_row(self, row=0):
         cell_value = str()
@@ -425,8 +520,9 @@ class Excelerator:
 
         self.create_sheet_job_inventory(fabricated_parts)
         self.create_sheet_bend(fabricated_parts)
-        self.create_sheet_weld_packing_slip(fabricated_parts)
-        self.create_sheet_finish_slip(fabricated_parts)
+        self.create_sheet_weld_pick_list(fabricated_parts)
+        self.create_sheet_weld_pack_slip(fabricated_parts + weldments[1:])
+        self.create_sheet_finish_slip(fabricated_parts + weldments[1:])
         self.create_sheets_weldments(fabricated_parts)
 
         # Create Weld SFC Pick List sheet.
