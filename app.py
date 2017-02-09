@@ -52,7 +52,7 @@ class SSLifyImproved(SSLify):
         return hsts_policy
 
 
-sslify = SSLifyImproved(app, subdomains=True)
+sslify = SSLifyImproved(app, permanent=True, subdomains=True)
 
 
 @app.route('/')
