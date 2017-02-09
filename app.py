@@ -46,8 +46,8 @@ def get_form(request):
     return form
 
 
-def send_email(to, filename=str(), multiplier=str(), order_number=str(),
-               primary_color=str(), secondary_color=str()):
+def send_email(to, filename=str(), multiplier='None', order_number='None',
+               primary_color='None', secondary_color='None'):
     if MAILGUN_DOMAIN and MAILGUN_SERIAL:
         url = 'https://api.mailgun.net/v3/{}/messages'.format(MAILGUN_DOMAIN)
         auth = ('api',
@@ -55,8 +55,14 @@ def send_email(to, filename=str(), multiplier=str(), order_number=str(),
         data = {
             'from': 'PPP-E Mailgun User <mailgun@{}>'.format(MAILGUN_DOMAIN),
             'to': to,
-            'subject': 'File Uploaded',
-            'text': "Here's what happened.",
+            'subject': '[PPP-E] File Uploaded',
+            'text': f"""File Uploaded: {filename}
+
+            Order Number: {order_number}
+            Multiplier: {multiplier}
+            Primary Color: {primary_color}
+            Secondary Color: {secondary_color}
+            """
         }
 
         response = requests.post(url, auth=auth, data=data)
@@ -150,10 +156,10 @@ def get_tasks():
     if APP_ENV == 'production':
         try:
             send_email(ADMIN_EMAIL, filename=filename,
-                       multiplier=form['multiplier'],
-                       order_number=form['order_number'],
-                       primary_color=form['primary_color'],
-                       secondary_color=form['secondary_color'])
+                       multiplier=form['multiplier'] or 'None',
+                       order_number=form['order_number'] or 'None',
+                       primary_color=form['primary_color'] or 'None',
+                       secondary_color=form['secondary_color'] or 'None')
             track_event(category='File', action='uploaded', label=filename,
                         value=form['multiplier'], ip_addr=request.remote_addr)
         except:
