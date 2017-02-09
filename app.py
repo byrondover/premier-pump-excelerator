@@ -4,8 +4,11 @@ import logging
 import os
 
 from flask import Flask, redirect, render_template, request, send_file, url_for
+from flask_sslify import SSLify
 
 from excelerator import Excelerator
+
+YEAR_IN_SECS = 31536000
 
 app = Flask(__name__)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -28,6 +31,28 @@ def get_form(request):
     form['file'] = request.files.get('file')
 
     return form
+
+
+class SSLifyImproved(SSLify):
+
+    def __init__(self, app=None, age=YEAR_IN_SECS, subdomains=False,
+                 permanent=False, skips=None):
+        super().__init__(app, age, subdomains, permanent, skips)
+
+    @property
+    def hsts_header(self):
+        """Returns the proper HSTS policy."""
+        hsts_policy = 'max-age={0}'.format(self.hsts_age)
+
+        if self.hsts_include_subdomains:
+            hsts_policy += '; includeSubDomains'
+
+        hsts_policy += '; preload'
+
+        return hsts_policy
+
+
+sslify = SSLifyImproved(app, subdomains=True)
 
 
 @app.route('/')
