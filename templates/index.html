@@ -76,17 +76,16 @@
     Dropzone.options.dropzone = {
       init: function() {
         this.on("success", function(file, response) {
-          console.log(file);
-
+          // limit base filename to 64 characters
           var filename_components = [
-            file.name.split('.').slice(0, -1).join('.'),
-            '-Excelerated',
+            file.name.split('.').slice(0, -1).join('.').slice(0, 64),
+            ' PPP-E',
             '.xlsx'
           ];
 
           var excelerated_filename = filename_components.join('');
 
-          var mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          var mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
           var isSafari = navigator.vendor &&
                          navigator.vendor.indexOf('Apple') > -1 &&
@@ -95,11 +94,13 @@
                          !navigator.userAgent.match('CriOS');
 
           if (isSafari)
-            mimetype = 'text/plain'
+            mimetype = 'text/plain';
 
           var blob = new Blob([response], {type: mimetype});
 
           saveAs(blob, excelerated_filename);
+
+          window.scrollTo(0, document.body.scrollHeight);
         });
       },
       acceptedFiles: '.xls,.xlsx',
@@ -128,24 +129,24 @@
 
     var inputNumber = document.getElementById('multiplier');
 
-    // When the slider value changes, update the input.
+    // When the slider value changes, update the input
     rangeSlider.noUiSlider.on('update', function( values, handle ) {
     	var value = values[handle];
       inputNumber.value = value;
     });
 
-    // When any non-blank input is detected, set the slider value.
+    // When any non-blank input is detected, set the slider value
     inputNumber.addEventListener('input', function() {
       if (this.value)
         rangeSlider.noUiSlider.set(this.value);
     });
 
-    // When input loses focus, set the input and slider values.
+    // When input loses focus, set the input and slider values
     inputNumber.addEventListener('blur', function() {
       rangeSlider.noUiSlider.set(this.value);
     });
 
-    // When input changes, set the input and slider values.
+    // When input changes, set the input and slider values
     inputNumber.addEventListener('change', function() {
       rangeSlider.noUiSlider.set(this.value);
     });

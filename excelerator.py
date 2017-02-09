@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 from collections import OrderedDict
 from datetime import datetime
 from io import BytesIO
@@ -16,8 +17,8 @@ class Excelerator:
             primary_color=str(), secondary_color=str()):
         self.filename = workbook
         self.multiplier = multiplier
-        self.primary_color = primary_color
-        self.secondary_color = secondary_color
+        self.primary_color = primary_color.strip()
+        self.secondary_color = secondary_color.strip()
 
         if not isinstance(self.filename, str):
             self.filename = workbook.filename
@@ -48,6 +49,44 @@ class Excelerator:
             part.update({name: None})
             part.move_to_end(name, last=last)
 
+    def append_colors_legend(self, sheet, columns=4, pad=True):
+        rows_added = 0
+
+        # Don't bother if not colors are provided
+        if not self.primary_color and not self.secondary_color:
+            return rows_added
+
+        if self.primary_color:
+            p_value = 'PRIMARY COLOR :        {}'.format(self.primary_color)
+            sheet.append([None, p_value])
+            rows_added += 1
+
+            p_row = sheet.max_row
+            p_cell = sheet.cell(column=2, row=p_row)
+            p_cell.font = self.bold
+            sheet.row_dimensions[p_row].height = 30
+            sheet.merge_cells(start_row=p_row, start_column=2,
+                              end_row=p_row, end_column=columns)
+
+        if self.secondary_color:
+            s_value = 'SECONDARY COLOR :   {}'.format(self.secondary_color)
+            sheet.append([None, s_value])
+            rows_added += 1
+
+            s_row = sheet.max_row
+            s_cell = sheet.cell(column=2, row=s_row)
+            s_cell.font = self.bold
+            sheet.row_dimensions[s_row].height = 30
+            sheet.merge_cells(start_row=s_row, start_column=2,
+                              end_row=s_row, end_column=columns)
+
+        if pad:
+            # Pad colors legend with blank rows
+            self.append_empty_row(sheet, 2)
+            rows_added += 2
+
+        return rows_added
+
     def append_data(self, data, sheet):
         sorted_data = sorted(data, key=lambda k: str(k.get('PART NUMBER')))
 
@@ -66,7 +105,7 @@ class Excelerator:
         signature = str(prompt) + signature_line
 
         if date:
-            signature += '           ' + 'Date' + signature_line
+            signature += '                    ' + 'Date' + signature_line
 
         self.append_empty_row(sheet, 2)
         sheet.append([None, signature])
@@ -130,12 +169,12 @@ class Excelerator:
         for col, value in dims.items():
             sheet.column_dimensions[col].width = value
 
-    def convert_to_xlsx(self, file):
-        # Read xls using xlrd.
-        if isinstance(file, str):
-            book = xlrd.open_workbook(file)
+    def convert_to_xlsx(self, file_):
+        # Read xls using xlrd
+        if isinstance(file_, str):
+            book = xlrd.open_workbook(file_)
         else:
-            book = xlrd.open_workbook(file_contents=file.stream.read())
+            book = xlrd.open_workbook(file_contents=file_.stream.read())
 
         index = 0
         nrows, ncols = 0, 0
@@ -146,7 +185,7 @@ class Excelerator:
             ncols = sheet.ncols
             index += 1
 
-        # Prepare an xlsx workbook.
+        # Prepare an xlsx workbook
         workbook = Workbook()
         worksheet = workbook.active
 
@@ -204,15 +243,24 @@ class Excelerator:
 
     def create_sheet(self, name):
         sheet = self.workbook.create_sheet()
-        sheet.title = name
+        sanitized_name = self.sanitize_name(name)
+
+        try:
+            # Try to name the sheet...
+            sheet.title = sanitized_name
+        except ValueError:
+            # ...but if we can't, no big deal, just stick with the default
+            pass
 
         return sheet
 
     def create_sheet__generic(self, name, section, columns, sort,
-                              filter_='False', secondary_sort=None):
+                              filter_='True', secondary_sort=None,
+                              colors_legend=False):
         column_map = dict()
         headers = [i.value for i in self.headers if i.value != None]
         parts = list()
+        start_row = 3
 
         # Generate column header map
         for value in columns.values():
@@ -257,6 +305,11 @@ class Excelerator:
         sheet = self.create_sheet(name)
         self.append_title(sheet, columns=len(columns))
 
+        if colors_legend:
+            modifier = self.append_colors_legend(sheet,
+                                                 columns=len(columns) - 1)
+            start_row += modifier
+
         sorted_parts = copy.deepcopy(parts)
         if secondary_sort:
             sorted_parts = sorted(
@@ -269,7 +322,7 @@ class Excelerator:
         for row in sorted_parts:
             sheet.append(list(row.values()))
 
-        self.apply_styles(sheet)
+        self.apply_styles(sheet, start_row=start_row)
         self.append_signature('Received by', sheet, columns=len(columns) - 1)
 
     def create_sheet__generic_weldments(self, section, columns, sort):
@@ -300,7 +353,7 @@ class Excelerator:
                         value = str(value)
 
                 if header == 'WELDMENT USED':
-                    if value and value.strip() != 'SHIPPED LOOSE':
+                    if value and str(value).strip() != 'SHIPPED LOOSE':
                         weldment = str(value).strip()
 
                 cell_map[header] = value
@@ -379,7 +432,7 @@ class Excelerator:
         secondary_sort = 'PART NUMBER'
 
         self.create_sheet__generic('Finish Pack Slip', section, columns, sort,
-                                   filter_, secondary_sort)
+                                   filter_, secondary_sort, colors_legend=True)
 
     def create_sheet_job_inventory(self, section):
         columns = OrderedDict([
@@ -411,7 +464,7 @@ class Excelerator:
         secondary_sort = 'PART NUMBER'
 
         self.create_sheet__generic('Weld Pack Slip', section, columns, sort,
-                                   filter_, secondary_sort)
+                                   filter_, secondary_sort, colors_legend=True)
 
     def create_sheet_weld_pick_list(self, section):
         columns = OrderedDict([
@@ -470,7 +523,7 @@ class Excelerator:
         while cell_value:
             row += 1
 
-            if row == self.master_parts_sheet.max_row:
+            if row == self.master_parts_sheet.max_row + 1:
                 break
 
             cell_value = self.master_parts_sheet.cell(row=row, column=1).value
@@ -494,12 +547,20 @@ class Excelerator:
 
         return workbook
 
-    def excelerate(self, file):
+    def sanitize_name(self, name=str(), max_length=30):
+        sanitized_name = re.sub(r'[\\*?:/\[\]]', str(), name)
+        valid_name = re.sub(r' +', ' ', sanitized_name)[:max_length].strip()
+        return valid_name
+
+    def excelerate(self, file_):
+        # Limit base filename to 64 characters
+        file_.filename = self.sanitize_name(file_.filename, max_length=64)
+
         # Load spreadsheet into Workbook object.
         if self.extension == '.xlsx':
-            self.workbook = load_workbook(file)
+            self.workbook = load_workbook(file_)
         else:
-            self.workbook = self.convert_to_xlsx(file)
+            self.workbook = self.convert_to_xlsx(file_)
 
         # First spreadsheet should contain master parts list.
         self.master_parts_sheet = self.workbook.worksheets[0]

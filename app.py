@@ -36,11 +36,8 @@ def get_tasks():
 
     workbook = excelerator.get_workbook_stream()
 
-    excelerated_filename = ''.join([
-        filename,
-        '-Excelerated',
-        '.xlsx'
-    ])
+    # Limit base filename to 64 characters
+    excelerated_filename = filename[:64] + ' PPP-E' + '.xlsx'
 
     return send_file(
         workbook,
