@@ -329,6 +329,7 @@ class Excelerator:
         self.append_signature('Received by', sheet, columns=len(columns) - 1)
 
         # Lastly, configure page setup and printable area
+        sheet.page_setup.orientation = "landscape"
         sheet.page_setup.fitToPage = True
         sheet.page_setup.fitToHeight = False
 
@@ -400,6 +401,7 @@ class Excelerator:
                                   columns=len(columns) - 1)
 
             # Lastly, configure page setup and printable area
+            sheet.page_setup.orientation = "landscape"
             sheet.page_setup.fitToPage = True
             sheet.page_setup.fitToHeight = False
 
