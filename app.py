@@ -22,7 +22,7 @@ MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN')
 MAILGUN_SERIAL = os.environ.get('MAILGUN_SERIAL')
 
 ADMIN_EMAIL='byrondover+ppp-e@gmail.com'
-VERSION = '2.0.1'
+VERSION = '2.0.2'
 YEAR_IN_SECS = 31536000
 # [END config]
 
