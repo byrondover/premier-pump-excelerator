@@ -121,7 +121,7 @@ def index():
     base_url = str()
 
     if APP_ENV == 'production':
-        base_url = 'https://premier-pump-excelerator.appspot.com/'
+        base_url = 'https://premier-pump-excelerator.appspot.com'
 
     return render_template('index.html', base_url=base_url, version=VERSION)
 
