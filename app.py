@@ -121,7 +121,7 @@ def index():
     base_url = str()
 
     if APP_ENV == 'production':
-        base_url = 'https://premier-pump-excelerator.appspot-preview.com/'
+        base_url = 'https://premier-pump-excelerator.appspot.com/'
 
     return render_template('index.html', base_url=base_url, version=VERSION)
 
@@ -129,7 +129,7 @@ def index():
 @app.route('/favicon.ico')
 def favicon():
     if APP_ENV == 'production':
-        return redirect("https://premier-pump-excelerator.appspot-preview.com/static/img/favicon.ico")
+        return redirect("https://premier-pump-excelerator.appspot.com/static/img/favicon.ico")
     else:
         # Fails Chrome browser HTTPS security verification. ):
         return redirect(url_for('static', filename='img/favicon.ico'))
