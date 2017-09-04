@@ -19,7 +19,7 @@ app.config['PREFERRED_URL_SCHEME'] = 'https'
 APP_ENV = os.environ.get('APP_ENV', 'development')
 GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID')
 MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN')
-MAILGUN_SERIAL = os.environ.get('MAILGUN_SERIAL')
+MAILGUN_SVALUE = os.environ.get('MAILGUN_SVALUE')
 
 ADMIN_EMAIL='byrondover+ppp-e@gmail.com'
 VERSION = '2.0.2'
@@ -48,10 +48,12 @@ def get_form(request):
 
 def send_email(to, filename=str(), multiplier='None', order_number='None',
                primary_color='None', secondary_color='None'):
-    if MAILGUN_DOMAIN and MAILGUN_SERIAL:
+    if MAILGUN_DOMAIN and MAILGUN_SVALUE:
         url = 'https://api.mailgun.net/v3/{}/messages'.format(MAILGUN_DOMAIN)
-        auth = ('api',
-                b64decode(str(MAILGUN_SERIAL).encode('UTF-8')).decode('UTF-8'))
+        svalue = (
+            'api',
+            b64decode(str(MAILGUN_SVALUE).encode('UTF-8')).decode('UTF-8')
+        )
         data = {
             'from': 'PPP-E Mailgun User <mailgun@{}>'.format(MAILGUN_DOMAIN),
             'to': to,
@@ -65,7 +67,7 @@ def send_email(to, filename=str(), multiplier='None', order_number='None',
             """.format(**locals())
         }
 
-        response = requests.post(url, auth=auth, data=data)
+        response = requests.post(url, auth=svalue, data=data)
         response.raise_for_status()
 
 
