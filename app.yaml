@@ -5,10 +5,8 @@ entrypoint: gunicorn -b :$PORT app:app
 runtime_config:
   python_version: 3
 
-#[START env]
 env_variables:
   APP_ENV: production
   GA_TRACKING_ID: UA-83133303-1
-  MAILGUN_DOMAIN: sandboxbded43fa85f3440cab9214c5892a75df.mailgun.org
-  MAILGUN_SVALUE: a2V5LWRjNjhiMzA0ZTBlMWU5ZjU2MmIzMGNkYzY1ZjZmYjJh
-#[END env]
+  MAILGUN_DOMAIN: mailgun.premier-pump.io
+  MAILGUN_SVALUE: YTJWNUxXUmpOamhpTXpBMFpUQmxNV1U1WmpVMk1tSXpNR05rWXpZMVpqWm1ZakpoCg

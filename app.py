@@ -2,11 +2,13 @@
 
 import logging
 import os
+import sys
 import uuid
 from base64 import b64decode
 
 import requests
 from flask import Flask, redirect, render_template, request, send_file, url_for
+from flask_cors import cross_origin
 from flask_sslify import SSLify
 
 from excelerator import Excelerator
@@ -14,17 +16,20 @@ from excelerator import Excelerator
 app = Flask(__name__)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 
-# [START config]
 # Google Cloud environment variables are defined in app.yaml
 APP_ENV = os.environ.get('APP_ENV', 'development')
 GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID')
 MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN')
 MAILGUN_SVALUE = os.environ.get('MAILGUN_SVALUE')
 
-ADMIN_EMAIL='byrondover+ppp-e@gmail.com'
-VERSION = '2.0.2'
+EMAIL_ADMINS='byrondover+ppp-e@gmail.com'
+EMAIL_RECIPIENTS='bill@premier-pump.net'
+CORS_ALLOWED_DOMAINS = [
+    'https://excelerator.premier-pump.io',
+    'https://premier-pump-excelerator.appspot.com'
+]
+VERSION = '2.0.3'
 YEAR_IN_SECS = 31536000
-# [END config]
 
 
 def get_filename(_file):
@@ -38,25 +43,28 @@ def get_form(request):
     form = dict()
 
     form['multiplier'] = int(request.form.get('multiplier', 1))
-    form['order_number'] = request.form.get('order-number', str()).strip()
-    form['primary_color'] = request.form.get('primary-color', str()).strip()
-    form['secondary_color'] = request.form.get('secondary-color', str()).strip()
+    form['order_number'] = request.form.get('order-number', '').strip()
+    form['primary_color'] = request.form.get('primary-color', '').strip()
+    form['secondary_color'] = request.form.get('secondary-color', '').strip()
     form['file'] = request.files.get('file')
 
     return form
 
 
-def send_email(to, filename=str(), multiplier='None', order_number='None',
+def send_email(to, bcc='', filename='', multiplier='None', order_number='None',
                primary_color='None', secondary_color='None'):
     if MAILGUN_DOMAIN and MAILGUN_SVALUE:
         url = 'https://api.mailgun.net/v3/{}/messages'.format(MAILGUN_DOMAIN)
         svalue = (
             'api',
-            b64decode(str(MAILGUN_SVALUE).encode('UTF-8')).decode('UTF-8')
+            b64decode(b64decode(
+                str(MAILGUN_SVALUE + '==').encode('UTF-8')
+            )).decode('UTF-8')
         )
         data = {
-            'from': 'PPP-E Mailgun User <mailgun@{}>'.format(MAILGUN_DOMAIN),
+            'from': 'PPP Bot <noreply@premier-pump.io>',
             'to': to,
+            'bcc': bcc,
             'subject': '[PPP-E] File Uploaded',
             'text': """File Uploaded: {filename}
 
@@ -123,7 +131,7 @@ def index():
     base_url = str()
 
     if APP_ENV == 'production':
-        base_url = 'https://premier-pump-excelerator.appspot.com'
+        base_url = 'https://excelerator.premier-pump.io'
 
     return render_template('index.html', base_url=base_url, version=VERSION)
 
@@ -131,13 +139,14 @@ def index():
 @app.route('/favicon.ico')
 def favicon():
     if APP_ENV == 'production':
-        return redirect("https://premier-pump-excelerator.appspot.com/static/img/favicon.ico")
+        return redirect("https://excelerator.premier-pump.io/static/img/favicon.ico")
     else:
         # Fails Chrome browser HTTPS security verification. ):
         return redirect(url_for('static', filename='img/favicon.ico'))
 
 
-@app.route('/file-upload', methods=['POST'])
+@app.route('/file-upload', methods=['OPTIONS', 'POST'])
+@cross_origin(CORS_ALLOWED_DOMAINS)
 def get_tasks():
     form = get_form(request)
     filename = get_filename(form['file'])
@@ -157,15 +166,19 @@ def get_tasks():
 
     if APP_ENV == 'production':
         try:
-            send_email(ADMIN_EMAIL, filename=form['file'].filename,
+            send_email(EMAIL_RECIPIENTS,
+                       bcc=EMAIL_ADMINS,
+                       filename=form['file'].filename,
                        multiplier=form['multiplier'] or 'None',
                        order_number=form['order_number'] or 'None',
                        primary_color=form['primary_color'] or 'None',
                        secondary_color=form['secondary_color'] or 'None')
             track_event(category='File', action='uploaded', label=filename,
                         value=form['multiplier'], ip_addr=request.remote_addr)
-        except:
-            # Email call or Google Analyics call fails? No big deal
+        except Exception as e:
+            # Email call or Google Analyics call fails? No big deal.
+            # Log out the error and move on.
+            print(e, file=sys.stderr)
             pass
 
     return send_file(
