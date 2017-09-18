@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import sys
 import uuid
 from base64 import b64decode
@@ -28,8 +29,21 @@ CORS_ALLOWED_DOMAINS = [
     'https://excelerator.premier-pump.io',
     'https://premier-pump-excelerator.appspot.com'
 ]
-VERSION = '2.0.3'
+global ORDER_NUMBER
+ORDER_NUMBER=4000
+VERSION = '2.1.0'
 YEAR_IN_SECS = 31536000
+
+
+def calculate_order_number(raw_order_number):
+    numbers_and_spaces = re.compile(r'[^\d\s]+')
+    stripped_order_number = numbers_and_spaces.sub('', str(raw_order_number))
+    numbers = list(filter(None, stripped_order_number.split(' ')))
+
+    if len(numbers) > 0:
+        return int(numbers[0]) + 1
+
+    return ORDER_NUMBER
 
 
 def get_filename(_file):
@@ -159,6 +173,8 @@ def get_tasks():
         form['secondary_color']
     )
 
+    global ORDER_NUMBER
+    ORDER_NUMBER = calculate_order_number(form['order_number'])
     workbook = excelerator.get_workbook_stream()
 
     # Limit base filename to 64 characters
@@ -187,6 +203,11 @@ def get_tasks():
         attachment_filename=excelerated_filename,
         as_attachment=True
     )
+
+
+@app.route('/order-number')
+def order_number():
+    return str(ORDER_NUMBER)
 
 
 @app.route('/error')

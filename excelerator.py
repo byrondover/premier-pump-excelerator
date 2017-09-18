@@ -119,12 +119,11 @@ class Excelerator:
     def append_title(self, sheet, title=None, columns=4, pad=True):
         if not title:
             title_components = [
-                self.order_number.upper(),
+                'SO {}'.format(self.order_number.upper()),
                 sheet.title,
-                '–',
                 'QTY {n}'.format(n=self.multiplier)
             ]
-            title = ' '.join(title_components)
+            title = ' – '.join(title_components)
 
         sheet.append([title])
 
@@ -379,8 +378,9 @@ class Excelerator:
 
         for weldment in sorted(parts_by_weldment):
             sheet = self.create_sheet(weldment)
-            title = '{} – {}'.format(sheet.title,
-                                     'QTY {n}'.format(n=self.multiplier))
+            title = 'SO {} – {} – {}'.format(self.order_number.upper(),
+                                             sheet.title,
+                                             'QTY {n}'.format(n=self.multiplier))
 
             self.append_title(sheet, 'Weldment', columns=len(columns),
                               pad=False)

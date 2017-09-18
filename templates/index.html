@@ -81,6 +81,18 @@
   <script src="{{ base_url }}/static/js/wNumb.min.js"></script>
 
   <script>
+    function orderNumberListener() {
+      var oReq = new XMLHttpRequest();
+      oReq.onload = function(e) {
+        var orderNumber = oReq.response;
+        document.getElementById("order-number").value = orderNumber;
+      }
+      oReq.open("GET", "{{ base_url }}/order-number");
+      oReq.send();
+    }
+
+    orderNumberListener();
+
     Dropzone.options.dropzone = {
       init: function() {
         this.on("success", function(file, response) {
@@ -109,6 +121,8 @@
           saveAs(blob, excelerated_filename);
 
           window.scrollTo(0, document.body.scrollHeight);
+
+          orderNumberListener();
         });
       },
       acceptedFiles: '.xls,.xlsx',
