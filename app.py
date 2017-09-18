@@ -206,6 +206,7 @@ def get_tasks():
 
 
 @app.route('/order-number')
+@cross_origin(CORS_ALLOWED_DOMAINS)
 def order_number():
     return str(ORDER_NUMBER)
 
