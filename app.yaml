@@ -1,3 +1,4 @@
+# No longer used. Legacy from App Engine. See: Dockerfile
 runtime: python
 env: flex
 entrypoint: gunicorn -b :$PORT app:app

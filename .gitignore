@@ -4,6 +4,7 @@
 *.csv
 *.xls
 *.xlsx
+*_bak
 
 # Created by https://www.gitignore.io/api/appengine,django,macos,osx,pycharm,python,textmate,vagrant,vim,virtualenv
 

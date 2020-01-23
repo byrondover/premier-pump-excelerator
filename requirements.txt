@@ -1,9 +1,0 @@
-Flask
-flask-cors
-flask_sslify
-openpyxl
-requests
-xlrd
-
-# Google Cloud
-gunicorn
