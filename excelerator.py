@@ -421,7 +421,7 @@ class Excelerator:
             ('TIME OUT', None),
             ('TOTAL', None)
         ])
-        filter_ = "'FORMED' in str(cell_map['PROCESS'])"
+        filter_ = "'FORMED' in str(cell_map['PROCESS'] or '')"
         sort = 'MATERIAL'
         secondary_sort = 'PART NUMBER'
 
@@ -439,7 +439,7 @@ class Excelerator:
             ('WELDED', 'WELDED'),
             ('COLOR', 'COLOR')
         ])
-        filter_ = "str(cell_map['WELDMENT USED'].strip()) == 'SHIPPED LOOSE'"
+        filter_ = "str(cell_map['WELDMENT USED'] or '').strip() == 'SHIPPED LOOSE'"
         sort = 'COLOR'
         secondary_sort = 'PART NUMBER'
 
@@ -473,7 +473,7 @@ class Excelerator:
             ('WELDED', 'WELDED'),
             ('COLOR', 'COLOR')
         ])
-        filter_ = "str(cell_map['WELDMENT USED'].strip()) == 'SHIPPED LOOSE'"
+        filter_ = "str(cell_map['WELDMENT USED'] or '').strip() == 'SHIPPED LOOSE'"
         sort = 'COLOR'
         secondary_sort = 'PART NUMBER'
 
@@ -494,7 +494,7 @@ class Excelerator:
             ('WELDED', 'WELDED'),
             ('WELDMENT USED', 'WELDMENT USED')
         ])
-        filter_ = "str(cell_map['WELDED'].strip()) == 'WELDED'"
+        filter_ = "str(cell_map['WELDED'] or '').strip() == 'WELDED'"
         sort = 'WELDMENT USED'
         secondary_sort = 'PART NUMBER'
 

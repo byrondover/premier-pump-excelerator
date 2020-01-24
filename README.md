@@ -13,5 +13,6 @@ gcloud builds submit --tag gcr.io/premier-pump-excelerator/excelerator
 ## Deploying
 
 ```shell
-gcloud --project premier-pump-excelerator run deploy --image gcr.io/premier-pump-excelerator/excelerator --platform managed --max-instances 1
+gcloud builds submit --tag gcr.io/premier-pump-excelerator/excelerator
+gcloud --project premier-pump-excelerator run deploy --image gcr.io/premier-pump-excelerator/excelerator --platform managed --max-instances 1 excelerator
 ```
