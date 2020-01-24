@@ -223,7 +223,7 @@ class Excelerator:
         def item(i, j):
             value = section[i][j].value
 
-            if self.headers[j].value == 'QTY':
+            if self.headers[j].value == 'QTY' and value and str(value).strip():
                 value = int(value) * self.multiplier
 
             if self.headers[j].value == 'PART NUMBER':
@@ -275,7 +275,7 @@ class Excelerator:
                 header = headers[j]
                 value = section[i][j].value
 
-                if header == 'QTY':
+                if header == 'QTY' and value and str(value).strip():
                     value = int(value) * self.multiplier
 
                 if header == 'PART NUMBER':
@@ -350,7 +350,7 @@ class Excelerator:
                 header = headers[j]
                 value = section[i][j].value
 
-                if header == 'QTY':
+                if header == 'QTY' and value and str(value).strip():
                     value = int(value) * self.multiplier
 
                 if header == 'PART NUMBER':
